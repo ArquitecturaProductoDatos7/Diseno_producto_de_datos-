@@ -44,7 +44,7 @@ Posteriormente se realizarían transformaciones para:
 
 Con estos cambios, guardamos la información en S3 bajo el esquema *cleaned*.
 
-![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/etl_op1.png)
+![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/etl_op1.jpg)
 
 ####  Opción alternativa
 
@@ -52,7 +52,7 @@ Descargar los datos en formato CSV y guardarlos directamente como una base de da
 
 Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Parquet* que se guardará en un S3.
 
-![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/etl_op2.png)
+![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/etl_op2.jpg)
 
 ## Referencias
 
