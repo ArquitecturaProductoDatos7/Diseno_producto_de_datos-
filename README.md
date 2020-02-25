@@ -23,6 +23,36 @@ Un **Dashboard** que presente la información de la lista de manera dinámica, a
 
 ![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/mockup1.png)
 
+### 1. ETL
+
+####  Primera opción
+
+Los datos de incidentes viales estan publicados de 2014 a enero 2020 y son actualizados mensualmente.
+
+La ingestión de los datos se hara una vez para obtener los datos disponibles (2014 a la fecha de ingestión) y luego se hará mensualmente para actualizar los datos.
+
+La página de datos de la CDMX provee una API para hacer solicitudes de descarga, la cual utilizaremos para extraer los datos.
+
+Los datos extraídos están en formato JSON, que es el que devuelve la API, y se almacenarán en un objeto S3 en AWS (esquema *raw*).
+
+Una vez teniendo el esquema anterior, lo siguiente a realizar sería convertir los datos al formato **Parquet** dado que el número de variables es pequeño (17 columnas), no se tienen variables numéricas, solo de fecha y geográficas.
+
+Posteriormente se realizarían transformaciones para:
+     
+     - Eliminar variables que no se usarán, por ejemplo la variable de *geopoint*
+     - Eliminar los caracteres especiales de los datos y convertir todo a minúsculas
+
+Con estos cambios, guardamos la información en S3 bajo el esquema *cleaned*.
+
+![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/etl1.png)
+
+####  Opción alternativa
+
+Descargar los datos en formato CSV y guardarlos directamente como una base de datos en PostgreSQL. Siguiendo el mismo flujo, los guardaríamos en formato texto en un esquema *raw* y después de realizar las transformaciones indicadas anteriormente guardaríamos la base en el esquema *cleaned*.
+
+Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Parquet* que se guardará en un S3.
+
+
 ## Referencias
 
 C5:
