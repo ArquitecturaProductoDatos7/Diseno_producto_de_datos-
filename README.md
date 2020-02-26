@@ -52,6 +52,7 @@ Descargar los datos en formato CSV y guardarlos directamente como una base de da
 
 Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Parquet* que se guardará en un S3.
 
+
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_op2.jpg)
 
 ## Referencias
