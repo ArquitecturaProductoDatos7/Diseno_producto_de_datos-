@@ -55,7 +55,7 @@ Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Pa
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_op2.jpg)
 
-### Orchestration
+### 2. Orchestration
 
 Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el producto de datos, hasta el momento tenemos una tarea que se encarga de extraer los datos de la API del C5. Para realizar esta tarea tuvimos que utilizar "Pagination", para poder ir extrayendo subconjuntos de los registros, esto debido a que la API del C5 limita la extracción de los datos a 10000  y el total de la base de datos contiene más de 1,260,000 registros (tan sólo en la última actualización del 6 de febrero del 2020 fueron 1,267,760 registros).
 
@@ -65,11 +65,9 @@ En la segunda fase el orquestador (Luigi) necesitará como requerimiento la tare
 
 ####  DAG
 
-
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/A.png)
 
-
-### Ética
+### 3. Ética
 
 La ética en nuestro producto de datos tiene dos vertienes principales. En primer lugar, para el desarrollo del producto de datos es necesario obtener información para poder analizarla e implementar un modelo para la toma de decisiones. En este caso, la extracción de información proporcionada por el C5 ya se encuentra acotada para porporcionar datos no sensibles, como por ejemplo: los nombres de las personas que realizaron la llamada o el teléfono que realizó la llamada, debido a que es una fuente de datos pública y se reservan ciertos datos, por lo que consideramos que la información que estamos utilizando no presenta un dilema ético para nosotros como científicos de datos, dado que cualquier persona tiene acceso a la misma información.
 
