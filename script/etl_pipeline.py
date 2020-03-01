@@ -13,7 +13,7 @@ TARGET_PATH = os.path.join(os.path.dirname(__file__), 'data/{date}'.format(date=
 DATAURL = "https://datos.cdmx.gob.mx/api/records/1.0/search/?dataset=incidentes-viales-c5"
 
 
-class extrae_chunk_api_a S3(luigi.Task):
+class extrae_chunk_api_a_S3(luigi.Task):
     """
     Fetches a chunk of information to a JSON file.
     """
