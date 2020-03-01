@@ -30,7 +30,7 @@ class extrae_chunk_api_a_S3(luigi.Task):
         
     def run(self):
         #hacemos el requerimiento para un chunk del los registros
-        response = extrae.peticion_api_por_chunks(DATAURL, start_record, num_records_total, chunk_size ):
+        response = extrae.peticion_api_por_chunks(DATAURL, start_record, num_records_total, chunk_size )
     
         #guardamos la info en un S3
         ses = boto3.session.Session(profile_name='default', region_name='us-east-2')
@@ -50,7 +50,7 @@ class extrae_chunk_api_a_S3(luigi.Task):
                self.year
               )
         
-        return luigi.contrib.s3.S3Target(path=output_path))
+        return luigi.contrib.s3.S3Target(path=output_path)
     
 
 
