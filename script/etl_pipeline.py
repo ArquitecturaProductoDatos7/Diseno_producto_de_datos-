@@ -44,7 +44,7 @@ class extrae_chunk_api_a_S3(luigi.Task)
          
         
     def output(self):
-        output_path = "s3://{}/{}/{}/YEAR={}/file1.cvs".\
+        output_path = "s3://{}/{}/{}/YEAR={}/file1.csv".\
         format(self.bucket, 
                self.root_path,
                self.etl_path,
