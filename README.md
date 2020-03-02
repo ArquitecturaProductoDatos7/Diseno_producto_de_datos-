@@ -45,7 +45,7 @@ Posteriormente se realizarían transformaciones para:
 
 Con estos cambios, guardamos la información en S3 bajo el esquema *cleaned*.
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op1.jpg)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op1.png)
 
 ####  Opción alternativa
 
@@ -54,7 +54,7 @@ Descargar los datos en formato CSV y guardarlos directamente como una base de da
 Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Parquet* que se guardará en un S3.
 
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op2.jpg)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op2.png)
 
 ### 2. Orchestration
 
@@ -65,7 +65,6 @@ En "Pagination" utilizaremos el método de "Page Number".
 En la segunda fase el orquestador (Luigi) necesitará como requerimiento la tarea A (Extracción) y con esa extracción Luigi se encargará de hacer la conexión a AWS para que se guarde 
 
 ####  DAG
-
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DAG.png)
 
 ### 3. Implicaciones éticas
