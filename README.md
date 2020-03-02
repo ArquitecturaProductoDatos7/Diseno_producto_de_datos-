@@ -5,10 +5,11 @@ La base de datos elegida para el trabajo es la de [Incidentes viales](https://da
 
 Los incidentes de emergencia se reportan al C5, principalmente, por medio de llamadas. Después de recibir la solicitud, se envía una unidad de emergencia al lugar del incidente. Una vez en el lugar del incidente, se confirma la emergencia reportada. Sin embargo, en ocasiones las solicitudes son no procedentes o falsas (bromas, niños jugando, etc.), lo cual implica un desvío de recursos limitados, postergando la atención de otras solicitudes que requieren la ayuda.
 
+### Pregunta de investigación
+
 Dado lo anterior, el proyecto tiene como objetivo identificar los incidentes de emergencias "reales" para una mejor asignación de los servicios de emergencia de la Ciudad de México (grúas, patrullas, ambulancias, médicos, etc.). 
 
 Para esto, desarrollaremos un modelo para clasificar cada incidente como "verdadero". Es decir, que el código de cierre sea *Afirmativo*, pues este identifica cuando una unidad de emergencias fue despachada, llego al lugar de los hechos y confirmo la emergencia reportada.
-
 
 ## Diseño del producto de datos (mockup)
 
@@ -44,7 +45,7 @@ Posteriormente se realizarían transformaciones para:
 
 Con estos cambios, guardamos la información en S3 bajo el esquema *cleaned*.
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_op1.jpg)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op1.jpg)
 
 ####  Opción alternativa
 
@@ -53,7 +54,7 @@ Descargar los datos en formato CSV y guardarlos directamente como una base de da
 Una vez que se tenga el esquema cleaned, se convertirá la base a un formato *Parquet* que se guardará en un S3.
 
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_op2.jpg)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/Op2.jpg)
 
 ### 2. Orchestration
 
@@ -65,14 +66,19 @@ En la segunda fase el orquestador (Luigi) necesitará como requerimiento la tare
 
 ####  DAG
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/A.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DAG.png)
 
-### 3. Ética
+### 3. Implicaciones éticas
 
-La ética en nuestro producto de datos tiene dos vertienes principales. En primer lugar, para el desarrollo del producto de datos es necesario obtener información para poder analizarla e implementar un modelo para la toma de decisiones. En este caso, la extracción de información proporcionada por el C5 ya se encuentra acotada para porporcionar datos no sensibles, como por ejemplo: los nombres de las personas que realizaron la llamada o el teléfono que realizó la llamada, debido a que es una fuente de datos pública y se reservan ciertos datos, por lo que consideramos que la información que estamos utilizando no presenta un dilema ético para nosotros como científicos de datos, dado que cualquier persona tiene acceso a la misma información.
+La ética en nuestro producto de datos tiene dos vertienes principales. En el proceso de ETL, es necesario obtener información para poder analizarla e implementar un modelo para la toma de decisiones. En este caso, la extracción de información proporcionada por el C5 ya se encuentra acotada para porporcionar datos no sensibles, como por ejemplo: los nombres de las personas que realizaron la llamada o el teléfono que realizó la llamada, debido a que es una fuente de datos pública y se reservan ciertos datos, por lo que consideramos que la información que estamos utilizando no presenta un dilema ético para nosotros como científicos de datos, dado que cualquier persona tiene acceso a la misma información.
 
-En segundo lugar, para la implementación del modelo que calcularan las probabilidades de que los incidentes viales reportados sean verdaderos, para posteriormente tener una lista priorizada de incidentes viales a atender con el fin hacer una correcta asignación de los recursos que tiene el C5. En esta fase, consideramos que si existen implicaciones éticas importantes porque nuestro modelo de clasificación etiqueta cada incidencia vial nueva en "verdadero"-(alta probabilidad de ser un caso verdadero) dependendiendo de la probabilidad que arroje ese indicidente reportado. Derivado de este resultado, la ética es un factor a considerar en nuestro proyecto porque si nuestro modelo llegara a etiquetar un incidente como "no verdadero" o con baja probabilidad, pero en la realidad si es "verdadero" generaría que el recurso se enviara a otro destino y podría incurrir incluso en alguna pérdida humana.
-Es por eso que al momento de desarrollar nuestro modelo nos enfocaremos más en la métrica de "Recall" para monitorear del total de incidentes viales que realmente fueron verdaderos, cuantos de esos nuestro modelo clasificó como verdadero.
+En segundo lugar, para la implementación del modelo consideramos que si existen implicaciones éticas importantes:
+
+- El modelo desarrollado etiquete incorrectamente un incidente, es decir asigne una probabilidad baja cuando tenga probabilidad alta "verdadero".
+- Una asignación ineficiente de los recursos del C5 generaría que el recurso se enviara a otro destino y podría incurrir incluso en alguna pérdida humana.
+- Se haga una limpieza incorrecta de las variables para el desarrollo del modelo que afecte los resultados generados.
+
+Es por eso que al momento de la evaluación del modelo nos enfocaremos en la métrica "Recall" para monitorear del total de incidentes viales que realmente fueron verdaderos, cuantos de esos nuestro modelo clasificó como verdadero.
 
 De igual manera, es importante mencionar que el producto de datos sólo es una herramienta adicional que será proporcionada al tomador de decisiones del C5 ( por ejemplo un supervisor), el cual se apoyará del producto de datos con la lista de probabilidades priorizadas, pero éste último es el que tomará la decisión si mandar el recurso o no ( o el tipo de recurso) al área solicitada.
 
