@@ -13,10 +13,13 @@ def peticion_api_info_mensual(url, mes, ano):
     #rows = -1 indica todos los registros
     parameters = {'rows': -1, 'refine.mes':mes, 'refine.ano':ano}
     
-    results = requests.get(url, params = parameters)
-    print("******* Estatus ****** ", results.status_code)
-    results = results.json()['records']
-    results = json.dumps(results)
+    raw = requests.get(url, params = parameters)
+    print("******* Estatus ****** ", raw.status_code)
+    results = raw.json()
+    results = pd.io.json.json_normalize(results['records'])
+    results = results.to_string()
+    #results = results.json()['records']
+    #results = json.dumps(results)
         
     return results
     
