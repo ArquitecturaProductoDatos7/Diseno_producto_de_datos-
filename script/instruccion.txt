@@ -1,0 +1,1 @@
+PYTHONPATH="." luigi --module etl_pipeline extraeInfoPrimeraVez --local-scheduler
