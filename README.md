@@ -22,7 +22,7 @@ La utilidad en este producto de datos recide en poder priorizar con antelación 
 
 Un **Dashboard** que presente la información de la lista de manera dinámica, actualizando las solicitudes que ya fueron atendidas y calculando de modo automático el tiempo de respuesta para realizar estadísticas futuras.
 
-![alt text](https://github.com/brunocgf/Productos_de_Datos_2020/blob/master/imagenes/mockup1.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/mockup.png)
 
 ### 1. ETL
 
