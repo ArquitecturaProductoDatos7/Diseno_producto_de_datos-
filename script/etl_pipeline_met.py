@@ -20,7 +20,7 @@ class extraeInfoPrimeraVez(luigi.Task):
     """
     
     #Parametros para la ruta en S3
-    bucket = "dpa20"
+    bucket = "bucket-dpa-2020"
     root_path = "incidentes_viales_CDMX"
     etl_path = "raw"
     year = 0
