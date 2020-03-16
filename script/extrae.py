@@ -16,8 +16,8 @@ def peticion_api_info_mensual(url, mes, ano):
     raw = requests.get(url, params = parameters)
     print("******* Estatus ****** ", raw.status_code)
     results = raw.json()
-    results = pd.io.json.json_normalize(results['records'])
-    results = results.to_string()
+    #results = pd.io.json.json_normalize(results['records'])
+    #results = results.to_string()
     #results = results.json()['records']
     #results = json.dumps(results)
         
