@@ -54,11 +54,12 @@ class extraeInfoPrimeraVez(luigi.Task):
             obj=s3_resource.Bucket(self.bucket)
             
             with self.output().open('w') as self.fname:
-                self.fname.write(response)
+                json.dump(response,self.fname)
+                #self.fname.write(response)
     
     
     def output(self):
-        output_path = "s3://{}/{}/{}/YEAR={}/MONTH={}/{}.csv".\
+        output_path = "s3://{}/{}/{}/YEAR={}/MONTH={}/{}.json".\
         format(self.bucket, 
                self.root_path,
                self.etl_path,
