@@ -56,22 +56,22 @@
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/conexion.png)
 
-* #### Una vez que se observó que la conexión fue exitosa, se tecleó “exit” para salir de ella y copiar la llave, con la que se “levantó” la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
+#### Una vez que se observó que la conexión fue exitosa, se tecleó “exit” para salir de ella y copiar la llave, con la que se “levantó” la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
 
 *scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh*
 
 
-* #### Posteriormente, nuevamente desde local, se copiaron los scripts de python para ejecutar el ETL de los datos mediante luigi, ejecutando lo siguiente:
+#### Posteriormente, nuevamente desde local, se copiaron los scripts de python para ejecutar el ETL de los datos mediante luigi, ejecutando lo siguiente:
 
 *scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/etl_pipeline.py ubuntu@54.221.60.22:/home/ubuntu*
 
 *scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/extrae.py ubuntu@54.221.60.22:/home/ubuntu*
 
-* #### Nos conectamos a la instancia y corroboramos que se hayan copiado los archivos descritos:
+#### Nos conectamos a la instancia y corroboramos que se hayan copiado los archivos descritos:
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/archivos_ec2.png)
 
-* #### Desde la instancia, para poder correr los scripts, se instaló python y los siguientes paquetes y versiones con el comando pip install:
+#### Desde la instancia, para poder correr los scripts, se instaló python y los siguientes paquetes y versiones con el comando pip install:
 
 *boto3==1.12.12*
 *botocore==1.15.12*
@@ -85,19 +85,19 @@
 
 **Nota: si se tienen problemas para instalar luigi probar con: *export PATH =”~/.local/bin:$PATH”***
 
-* #### Así también, desde la instancia, se configuró la línea de comando de AWS, con lo siguiente:
+#### Así también, desde la instancia, se configuró la línea de comando de AWS, con lo siguiente:
 
 *pip install awscli –upgrade*
 
-* #### y luego:
+#### y luego:
 
 *aws configure*
 
-* #### En el que se capturó la aws_access_key_id, la aws_secret_access_key y la region, estas credenciales puedes obtenerlas iniciando sesión en la cuenta de AWS educate, dando click en “Account Details” y luego en “Show”.
+#### En el que se capturó la aws_access_key_id, la aws_secret_access_key y la region, estas credenciales puedes obtenerlas iniciando sesión en la cuenta de AWS educate, dando click en “Account Details” y luego en “Show”.
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/credentials_educate.png)
 
-* #### Y así se crea en la carpeta .aws de la instancia el archivo credentials.
+#### Y así se crea en la carpeta .aws de la instancia el archivo credentials.
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/credentials_ec2.png)
 
