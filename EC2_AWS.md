@@ -4,7 +4,7 @@
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/buscador.png)
 
-#### * Posteriormente, se seleccionó “Launch instance”.
+* Posteriormente, se seleccionó “Launch instance”.
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/launch.png)
 
