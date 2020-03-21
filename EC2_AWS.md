@@ -107,8 +107,8 @@
 
 #### Para poder correr luigi desde la instancia, al principio del script etl_pipeline.py se ingresó lo siguiente:
 
-  *import sys*
-  *reload(sys)*
-  *sys.setdefaultencoding('utf-8')*
+  - *import sys*
+  - *reload(sys)*
+  - *sys.setdefaultencoding('utf-8')*
 
 
