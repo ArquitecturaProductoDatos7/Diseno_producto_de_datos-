@@ -58,7 +58,7 @@
 
 #### Una vez que se observó que la conexión fue exitosa, se tecleó “exit” para salir de ella y copiar la llave, con la que se “levantó” la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
 
-`*scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh*
+`*scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh*`
 
 
 #### Posteriormente, nuevamente desde local, se copiaron los scripts de python para ejecutar el ETL de los datos mediante luigi, ejecutando lo siguiente:
