@@ -4,47 +4,47 @@
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/buscador.png)
 
-* #### Posteriormente, se seleccionó “Launch instance”.
+* #### Posteriormente, se seleccionó "Launch instance".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/launch.png)
 
-* #### Paso 1: Se escogió la AMI, en este caso “Ubuntu Server 18.04 LTS (HVM), SSD Volume Type”.
+* #### Paso 1: Se escogió la AMI, en este caso "Ubuntu Server 18.04 LTS (HVM), SSD Volume Type".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso1.png)
 
-* #### Paso 2: Se escogió el tipo de instancia, en este caso una t2.micro y se dio click en “Next:Configure Instance Details”.
+* #### Paso 2: Se escogió el tipo de instancia, en este caso una t2.micro y se dio click en "Next:Configure Instance Details".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso2.png)
 
-* #### Paso 3: Se seleccionó la VPC y la subnet en la que iba a estar la instancia, que en este caso solo tenemos una (subnet pública), ambas creadas en la sección anterior, y se dio click en “Next: Add Storage”
+* #### Paso 3: Se seleccionó la VPC y la subnet en la que iba a estar la instancia, que en este caso solo tenemos una (subnet pública), ambas creadas en la sección anterior, y se dio click en "Next: Add Storage".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso3.png)
 
-* #### Paso 4: En esta ventana únicamente se dio click en “Next: Add Tags”.
+* #### Paso 4: En esta ventana únicamente se dio click en "Next: Add Tags".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso4.png)
 
-* #### Paso 5: En esta ventana únicamente se dio click en “Next: Configure Security Group”.
+* #### Paso 5: En esta ventana únicamente se dio click en "Next: Configure Security Group".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso5.png)
 
-* #### Paso 6: Se dio click en “Select an existing security group”, se seleccionó el security group que se creó en la sección anterior y se dió click en “Review and Launch”.
+* #### Paso 6: Se dio click en "Select an existing security group", se seleccionó el security group que se creó en la sección anterior y se dió click en "Review and Launch".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso6.png)
 
-* #### Paso 7: Se revisó que la configuración fuera correcta y se dió click en “Launch”.
+* #### Paso 7: Se revisó que la configuración fuera correcta y se dió click en "Launch".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/paso7.png)
 
-* #### Se seleccionó “Choose an existing key pair”, la llave y el cuadro en el que se indica que se tiene acceso a la llave seleccionada y posteriormente se dio click en “Launch Instances”
+* #### Se seleccionó "Choose an existing key pair", la llave y el cuadro en el que se indica que se tiene acceso a la llave seleccionada y posteriormente se dio click en "Launch Instances".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/llave.png)
 
-* #### En esta parte únicamente se dio click en “View Instances”.
+* #### En esta parte únicamente se dio click en "View Instances".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/status.png)
 
-* #### Se empezó a “levantar” la instancia y cuando en el state apareció “running”, se selecccionó el botón de connect para iniciar la conexión.
+* #### Se empezó a "levantar" la instancia y cuando en el state apareció "running", se selecccionó el botón de connect para iniciar la conexión.
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/running.png)
 
@@ -56,7 +56,7 @@
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/conexion.png)
 
-#### Una vez que se observó que la conexión fue exitosa, se tecleó “exit” para salir de ella y copiar la llave, con la que se “levantó” la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
+#### Una vez que se observó que la conexión fue exitosa, se tecleó "exit" para salir de ella y copiar la llave, con la que se "levantó" la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
 
 `scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh`
 
@@ -83,7 +83,7 @@
 - `python-dateutil==2.8.1`
 - `requests==2.23.0`
 
-**Nota: si se tienen problemas para instalar luigi probar con:** `export PATH =”~/.local/bin:$PATH”`
+**Nota: si se tienen problemas para instalar luigi probar con:** `export PATH ="~/.local/bin:$PATH"`
 
 #### Así también, desde la instancia, se configuró la línea de comando de AWS, con lo siguiente:
 
@@ -93,7 +93,7 @@
 
 `aws configure`
 
-#### En el que se capturó la aws_access_key_id, la aws_secret_access_key y la region, estas credenciales puedes obtenerlas iniciando sesión en la cuenta de AWS educate, dando click en “Account Details” y luego en “Show”.
+#### En el que se capturó la aws_access_key_id, la aws_secret_access_key y la region, estas credenciales puedes obtenerlas iniciando sesión en la cuenta de AWS educate, dando click en "Account Details" y luego en "Show".
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/credentials_educate.png)
 
