@@ -58,40 +58,40 @@
 
 #### Una vez que se observó que la conexión fue exitosa, se tecleó “exit” para salir de ella y copiar la llave, con la que se “levantó” la instancia, desde local hacia la carpeta .ssh de la instancia, ejecutando el siguiente comando:
 
-`*scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh*`
+`scp -i /Users/maggiemusa/.ssh/key-apd.pem /Users/maggiemusa/.ssh/key-apd.pem ubuntu@54.221.60.22:/home/ubuntu/.ssh`
 
 
 #### Posteriormente, nuevamente desde local, se copiaron los scripts de python para ejecutar el ETL de los datos mediante luigi, ejecutando lo siguiente:
 
-*scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/etl_pipeline.py ubuntu@54.221.60.22:/home/ubuntu*
+`scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/etl_pipeline.py ubuntu@54.221.60.22:/home/ubuntu`
 
-*scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/extrae.py ubuntu@54.221.60.22:/home/ubuntu*
+`scp -i key-apd.pem /Users/maggiemusa/Documents/Productos_datos/extrae.py ubuntu@54.221.60.22:/home/ubuntu`
 
 #### Nos conectamos a la instancia y corroboramos que se hayan copiado los archivos descritos:
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/archivos_ec2.png)
 
-#### Desde la instancia, para poder correr los scripts, se instaló python y los siguientes paquetes y versiones con el comando pip install:
+#### Desde la instancia, para poder correr los scripts, se instaló python y los siguientes paquetes y versiones con el comando `pip install`:
 
-- *boto3==1.12.12*
-- *botocore==1.15.12*
-- *luigi==2.8.12*
-- *numpy==1.16.6*
-- *pandas==0.24.2*
-- *psycopg2-binary==2.8.4*
-- *python-daemon==2.2.4*
-- *python-dateutil==2.8.1*
-- *requests==2.23.0*
+- `boto3==1.12.12`
+- `botocore==1.15.12`
+- `luigi==2.8.12`
+- `numpy==1.16.6`
+- `pandas==0.24.2`
+- `psycopg2-binary==2.8.4`
+- `python-daemon==2.2.4`
+- `python-dateutil==2.8.1`
+- `requests==2.23.0
 
-**Nota: si se tienen problemas para instalar luigi probar con: *export PATH =”~/.local/bin:$PATH”***
+**Nota: si se tienen problemas para instalar luigi probar con:** `export PATH =”~/.local/bin:$PATH”`
 
 #### Así también, desde la instancia, se configuró la línea de comando de AWS, con lo siguiente:
 
-*pip install awscli –upgrade*
+`pip install awscli –upgrade`
 
 #### y luego:
 
-*aws configure*
+`aws configure`
 
 #### En el que se capturó la aws_access_key_id, la aws_secret_access_key y la region, estas credenciales puedes obtenerlas iniciando sesión en la cuenta de AWS educate, dando click en “Account Details” y luego en “Show”.
 
@@ -101,14 +101,14 @@
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/EC2/credentials_ec2.png)
 
-#### Es importante señalar que dentro de las credenciales se encuentra el aws_session_token, mismo que no se pide cuando se configura aws, sin embargo, se debe agregar, modificando el archivo credentials con el comando nano.
+#### Es importante señalar que dentro de las credenciales se encuentra el aws_session_token, mismo que no se pide cuando se configura aws, sin embargo, se debe agregar, modificando el archivo credentials con el comando `nano`.
 
-#### No se omite señalar, que estas credenciales cambian cada que se cierra sesión por lo que éstas deben ser actualizadas, utilizando el comando aws configure.
+#### No se omite señalar, que estas credenciales cambian cada que se cierra sesión por lo que éstas deben ser actualizadas, utilizando el comando `aws configure`.
 
 #### Para poder correr luigi desde la instancia, al principio del script etl_pipeline.py se ingresó lo siguiente:
 
-  - *import sys*
-  - *reload(sys)*
-  - *sys.setdefaultencoding('utf-8')*
+  - `import sys`
+  - `reload(sys)`
+  - `sys.setdefaultencoding('utf-8')`
 
 
