@@ -81,7 +81,7 @@
 - `psycopg2-binary==2.8.4`
 - `python-daemon==2.2.4`
 - `python-dateutil==2.8.1`
-- `requests==2.23.0
+- `requests==2.23.0`
 
 **Nota: si se tienen problemas para instalar luigi probar con:** `export PATH =”~/.local/bin:$PATH”`
 
