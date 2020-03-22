@@ -5,6 +5,8 @@ import datetime
 import boto3
 import luigi
 import requests
+import pandas as pd
+import getpass
 
 
 DATAURL = "https://datos.cdmx.gob.mx/api/records/1.0/search/?dataset=incidentes-viales-c5"
@@ -37,22 +39,50 @@ class peticion_api_info_mensual(luigi.Task):
     root_path = "incidentes_viales_CDMX"
     etl_path = "raw"
 
+    def requires(self):
+        return ImprimeInicio()
+
     def run(self):
-        #rows = -1 indica todos los registros
-        parameters = {'rows': -1, 'refine.mes':self.month, 'refine.ano':self.year}
-        raw = requests.get(self.url, params = parameters)
-        print("******* Estatus ****** ", raw.status_code)
 
-        #guardamos la info en un S3
-        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
-        s3_resource = ses.resource('s3')
-        obj = s3_resource.Bucket(self.bucket)
+        date_start = datetime.date(self.year,self.month,1)
+        date_today = datetime.date.today()
+        date_end = datetime.date(date_today.year, date_today.month - 2, 31)
 
+        dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
 
-        #results = raw.json()
-        with self.output().open('w') as self.output:
-            #output.write(self.raw.json())
-            json.dump(raw.json(),self.output)
+        for date in dates:
+            self.year = date.year
+            self.month = date.month
+
+            #rows = -1 indica todos los registros
+            parameters = {'rows': -1, 'refine.mes':self.month, 'refine.ano':self.year}
+            print(parameters)
+            raw = requests.get(self.url, params = parameters)
+            print("******* Estatus ****** ", raw.status_code)
+            print(self.year)
+            print(self.month)
+
+            #metadata
+            metadata = {'fecha_ejecucion': str(date_today),
+            'parametros_url': self.url,
+            'parametros': parameters,
+            'usuario': getpass.getuser(),
+            'nombre_archivo': 'incidentes_viales_{}{}.json'.format(self.month,self.year),
+            'ruta': 's3://{}/{}/{}/YEAR={}/MONTH={}/'.format(self.bucket, self.root_path, self.etl_path, self.year, self.month),
+            'tipo_datos': 'json'
+            }
+            out = raw.json()
+            out['metadata'] = metadata
+
+            #guardamos la info en un S3
+            ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+            s3_resource = ses.resource('s3')
+            obj = s3_resource.Bucket(self.bucket)
+
+            #results = raw.json()
+            with self.output().open('w') as output:
+                #output.write(self.raw.json())
+                json.dump(out,output)
 
     def output(self):
         output_path = "s3://{}/{}/{}/YEAR={}/MONTH={}/incidentes_viales_{}{}.json".\
