@@ -1,4 +1,4 @@
-# Creación de VPC y Subnets en Amazon Web Services (AWS).
+# Creación de VPC y Subnets en Amazon Web Services (AWS)
 
 Esta es la documentación de cómo crear una VPC y dos Subnets requeridas para poder crear una RDB en AWS.
 
