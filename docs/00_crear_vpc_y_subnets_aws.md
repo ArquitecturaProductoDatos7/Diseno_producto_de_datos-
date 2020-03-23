@@ -94,6 +94,21 @@ Un DB Subnet Group es una colección de subredes (generalmente privadas --pero p
 <center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/17_vpc_aws.png" width="600" height="350"/></center>  
 
 
+## Creacion del Security Group
+
+* #### Cuando se creó la VPC, se creo un Security group *default* que es el que se usará cuando se cree la instancia EC2. Para conocer el *Group ID* se seleccionó del menu de la derecha *Security Groups*
+
+<center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/18_vpc_aws.png" width="600" height="350"/></center> 
+
+* #### Se reconoció el security group porque esta asociado a la VPC que se creó. Lo que necesitamos identificar es el **Group ID**
+
+<center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/19_vpc_aws.png" width="600" height="350"/></center> 
+
+* #### También se editó el nombre para reconocerlaen el futuro
+
+<center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/20_vpc_aws.png" width="600" height="350"/></center> 
+
+
 Esto es es lo mínimo necesario para crear una RDS en Amazon Web Services.
 
 
