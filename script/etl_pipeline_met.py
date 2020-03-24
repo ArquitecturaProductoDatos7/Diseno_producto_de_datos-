@@ -7,6 +7,7 @@ import luigi
 import requests
 import pandas as pd
 import getpass
+import socket   #para ip de metadatos
 
 
 DATAURL = "https://datos.cdmx.gob.mx/api/records/1.0/search/?dataset=incidentes-viales-c5"
@@ -47,6 +48,8 @@ class peticion_api_info_mensual(luigi.Task):
         date_start = datetime.date(self.year,self.month,1)
         date_today = datetime.date.today()
         date_end = datetime.date(date_today.year, date_today.month - 2, 31)
+        hostname = socket.gethostname()     
+        ip_address = socket.gethostbyname(hostname)
 
         dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
 
@@ -66,6 +69,7 @@ class peticion_api_info_mensual(luigi.Task):
             metadata = {'fecha_ejecucion': str(date_today),
             'parametros_url': self.url,
             'parametros': parameters,
+            'ip_address': ip_address,           
             'usuario': getpass.getuser(),
             'nombre_archivo': 'incidentes_viales_{}{}.json'.format(self.month,self.year),
             'ruta': 's3://{}/{}/{}/YEAR={}/MONTH={}/'.format(self.bucket, self.root_path, self.etl_path, self.year, self.month),
