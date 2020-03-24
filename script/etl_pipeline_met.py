@@ -39,6 +39,7 @@ class peticion_api_info_mensual(luigi.Task):
     bucket = "bucket-dpa-2020"
     root_path = "incidentes_viales_CDMX"
     etl_path = "raw"
+    file = ''
 
     def requires(self):
         return ImprimeInicio()
@@ -56,6 +57,7 @@ class peticion_api_info_mensual(luigi.Task):
         for date in dates:
             self.year = date.year
             self.month = date.month
+            self.file = 'incidentes_viales_'
 
             #rows = -1 indica todos los registros
             parameters = {'rows': -1, 'refine.mes':self.month, 'refine.ano':self.year}
@@ -75,8 +77,8 @@ class peticion_api_info_mensual(luigi.Task):
             'ruta': 's3://{}/{}/{}/YEAR={}/MONTH={}/'.format(self.bucket, self.root_path, self.etl_path, self.year, self.month),
             'tipo_datos': 'json'
             }
-            out = raw.json()
-            out['metadata'] = metadata
+            #out = raw.json()
+            #out['metadata'] = metadata
 
             #guardamos la info en un S3
             ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
@@ -86,15 +88,21 @@ class peticion_api_info_mensual(luigi.Task):
             #results = raw.json()
             with self.output().open('w') as output:
                 #output.write(self.raw.json())
-                json.dump(out,output)
+                json.dump(raw.json(),output)
+
+            self.file = 'metadatos'
+            with self.output().open('w') as output:
+                #output.write(self.raw.json())
+                json.dump(metadata,output)
 
     def output(self):
-        output_path = "s3://{}/{}/{}/YEAR={}/MONTH={}/incidentes_viales_{}{}.json".\
+        output_path = "s3://{}/{}/{}/YEAR={}/MONTH={}/{}{}{}.json".\
         format(self.bucket, 
                self.root_path,
                self.etl_path,
                self.year,
                self.month,
+               self.file,
                self.month,
                self.year
               )
