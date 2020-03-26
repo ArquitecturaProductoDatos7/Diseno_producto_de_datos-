@@ -104,10 +104,17 @@ Un DB Subnet Group es una colección de subredes (generalmente privadas --pero p
 
 <center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/19_vpc_aws.png" width="600" height="350"/></center> 
 
-* #### También se editó el nombre para reconocerlaen el futuro
+* #### También se editó el nombre para reconocerla en el futuro
 
 <center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/20_vpc_aws.png" width="600" height="350"/></center> 
 
+* #### Finalmente, se crea una nueva regla "Inbound" para permitir la conexion **ssh**
+
+<center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/21_vpc_aws.png" width="600" height="350"/></center> 
+
+* #### En *Type* seleccionamos *SSH* del menu desplegable y en *Source* usamos *0.0.0.0/0*
+
+<center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/22_vpc_aws.png" width="600" height="350"/></center> 
 
 Esto es es lo mínimo necesario para crear una RDS en Amazon Web Services.
 
