@@ -8,6 +8,7 @@ import requests
 import pandas as pd
 import getpass
 import socket   #para ip de metadatos
+from execute import returncode
 
 
 DATAURL = "https://datos.cdmx.gob.mx/api/records/1.0/search/?dataset=incidentes-viales-c5"
@@ -68,7 +69,7 @@ class peticion_api_info_mensual(luigi.Task):
             print(self.month)
 
             #metadata
-            metadata = {'fecha_ejecucion': str(date_today),
+            metadata2 = {'fecha_ejecucion': str(date_today),
             'parametros_url': self.url,
             'parametros': parameters,
             'ip_address': ip_address,           
@@ -77,8 +78,10 @@ class peticion_api_info_mensual(luigi.Task):
             'ruta': 's3://{}/{}/{}/YEAR={}/MONTH={}/'.format(self.bucket, self.root_path, self.etl_path, self.year, self.month),
             'tipo_datos': 'json'
             }
-            #out = raw.json()
-            #out['metadata'] = metadata
+            out = raw.json()
+            records = out['records']
+            metadata = out['parameters']
+            metadata['metadata'] = metadata2
 
             #guardamos la info en un S3
             ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
@@ -88,7 +91,7 @@ class peticion_api_info_mensual(luigi.Task):
             #results = raw.json()
             with self.output().open('w') as output:
                 #output.write(self.raw.json())
-                json.dump(raw.json(),output)
+                json.dump(records,output)
 
             self.file = 'metadatos'
             with self.output().open('w') as output:
