@@ -48,10 +48,10 @@ Para que la RDS pueda asociarse a muestra VPC, es necesario tener *al menos* dos
 <center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/09_vpc_aws.png" width="600" height="350"/></center>
 
 * #### Crear subnet: 
-        - Se llenó el campo *Name tag* con una etiqueta para la subnet, en mi caso **subnet2_dpa20**
-        - En el campo de *VPC\** se usó la VPC que se creo anteriormente **vpc_dpa20**. Esta aparece en el menú desplegable
-        - Para el campo de *Availability Zone* se seleccióno una zona distinta a la seleccionada para la primera subnet. En mi caso fue **us-east-1c**.
-        - En el campo de *IPv4 CIDR block\** se usó **10.0.128.0/24**. Si quieren saber porqué, pueden consultar [Adding IPv4 CIDR Blocks to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html#vpc-subnet-basics).
+     - Se llenó el campo *Name tag* con una etiqueta para la subnet, en mi caso **subnet2_dpa20**
+     - En el campo de *VPC\** se usó la VPC que se creo anteriormente **vpc_dpa20**. Esta aparece en el menú desplegable
+     - Para el campo de *Availability Zone* se seleccióno una zona distinta a la seleccionada para la primera subnet. En mi caso fue **us-east-1c**.
+     - En el campo de *IPv4 CIDR block\** se usó **10.0.128.0/24**. Si quieren saber porqué, pueden consultar [Adding IPv4 CIDR Blocks to a VPC](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html#vpc-subnet-basics).
         
 <center><img src="https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/AWS/VPC_y_Subnets/10_vpc_aws.png" width="600" height="350"/></center>    
 
