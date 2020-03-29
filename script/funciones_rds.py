@@ -88,14 +88,10 @@ def create_raw_tables():
             refine_mes TEXT,
             fecha_ejecucion TEXT,
             parametros_url TEXT,
-            parametros_rows TEXT,
-            parametros_refine_mes TEXT,
-            parametros_refine_ano TEXT,
             ip_address TEXT,
             usuario TEXT,
             nombre_archivo TEXT,
-            ruta TEXT,
-            tipo_datos TEXT
+            ruta TEXT
             );
         """)
     try:
