@@ -74,12 +74,12 @@ class peticion_api_info_mensual(luigi.Task):
 
             metadata2 = {'fecha_ejecucion': str(date_today),
             'parametros_url': self.url,
-            'parametros': parameters,
+            #'parametros': parameters,
             'ip_address': ip_address,           
             'usuario': getpass.getuser(),
             'nombre_archivo': 'incidentes_viales_{}{}.json'.format(self.month,self.year),
             'ruta': 's3://{}/{}/{}/YEAR={}/MONTH={}/'.format(self.bucket, self.root_path, self.etl_path, self.year, self.month),
-            'tipo_datos': 'json'
+            #'tipo_datos': 'json'
             }
 
             # Aqui le digo a python que es un jason y separo los records de los parametros
