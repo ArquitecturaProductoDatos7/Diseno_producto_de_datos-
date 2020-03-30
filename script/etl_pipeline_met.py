@@ -4,6 +4,7 @@ import requests
 import pandas as pd
 import getpass
 import socket   #para ip de metadatos
+import funciones_rds
 
 
 ## Esta tarea de ImprimeInicio solo hace un print, solo quería probar tareas sequenciales
@@ -90,7 +91,24 @@ class peticion_api_info_mensual(luigi.Task):
             #A los parametros le agrigo los metadatos de arriba para tener todo junto y se normaliza a csv
             metadata['metadata'] = metadata2
             metadata = pd.io.json.json_normalize(metadata).to_string(index=False)
-
+            
+            def to_upsert():
+                return (out['parameters']['dataset'], out['parameters']['timezone'], out['parameters']['rows'], out['parameters']['format'], out['parameters']['refine']['ano'],out['parameters']['refine']['mes'],out['parameters']['metadata']['fecha_ejecucion'],out['parameters']['metadata']['parametros_url'],out['parameters']['metadata']['ip_address'],out['parameters']['metadata']['usuario'],out['parameters']['metadata']['nombre_archivo'],out['parameters']['metadata']['ruta'])
+            
+            connection=funciones_rds.connect()
+            cursor=connection.cursor()
+            sql=("""
+                INSERT INTO raw.metadatos(dataset,timezone, rows, format, refine_ano, refine_mes, fecha_ejecucion, parametros_url, ip_address, usuario, nombre_archivo, ruta) VALUES
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """)
+            record_to_insert = to_upsert()
+            
+            cursor.execute(sql,record_to_insert)
+            connection.commit()
+    
+            cursor.close()
+            connection.close()
+            
 
             #guardamos la info en un S3
             ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
