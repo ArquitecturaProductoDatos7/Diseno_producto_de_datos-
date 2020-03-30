@@ -54,6 +54,7 @@ class peticion_api_info_mensual(luigi.Task):
         date_end = datetime.date(date_today.year, date_today.month - 2, 31)
         hostname = socket.gethostname()     
         ip_address = socket.gethostbyname(hostname)
+        date_time = datetime.datetime.now()
 
         dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
 
@@ -73,7 +74,7 @@ class peticion_api_info_mensual(luigi.Task):
 
             #Además cada ciclo obtiene algunos parametros para el metadata
 
-            metadata2 = {'fecha_ejecucion': str(date_today),
+            metadata2 = {'fecha_ejecucion': date_time.strftime("%d/%m/%Y %H:%M:%S"),
             'parametros_url': self.url,
             #'parametros': parameters,
             'ip_address': ip_address,           
@@ -83,12 +84,12 @@ class peticion_api_info_mensual(luigi.Task):
             #'tipo_datos': 'json'
             }
 
-            # Aqui le digo a python que es un jason y separo los records de los parametros
+            # Aqui le digo a python que es un json y se separa los records de los parametros
             out = raw.json()
             records = out['records']
             metadata = out['parameters']
 
-            #A los parametros le agrigo los metadatos de arriba para tener todo junto y se normaliza a csv
+            #A los parametros se le agregan los metadatos de arriba para tener todo junto y se normaliza a csv
             metadata['metadata'] = metadata2
             metadata = pd.io.json.json_normalize(metadata).to_string(index=False)
             
