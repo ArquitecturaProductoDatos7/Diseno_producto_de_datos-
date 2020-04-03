@@ -45,4 +45,4 @@ instance.wait_until_running()
 
 # Reload the instance attributes
 instance.load()
-print("DNS publica: ", instance.public_dns_name, "\nIPv4 publica", instance.public_ip_address)
+print("DNS publica: ", instance.public_dns_name, "\nIPv4 publica:", instance.public_ip_address)

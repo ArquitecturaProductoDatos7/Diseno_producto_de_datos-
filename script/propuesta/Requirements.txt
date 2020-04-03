@@ -1,10 +1,12 @@
 aws==0.2.5
-awscli==1.17.13
+awscli==1.18.35
+boto==2.49.0
 boto3==1.12.12
-botocore==1.15.12
+botocore==1.15.35
 luigi==2.8.12
 numpy==1.16.6
 pandas==0.24.2
+paramiko==2.7.1
 psycopg2-binary==2.8.4
 python-daemon==2.2.4
 python-dateutil==2.8.1
