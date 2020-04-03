@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
+# config: utf8
 import json, os, datetime, boto3, luigi, requests
 import luigi.contrib.s3
+#from luigi.contrib.external_program import ExternalProgramTask
 import requests
 import pandas as pd
 import getpass
@@ -63,13 +64,7 @@ class CreaInstanciaRDS(luigi.Task):
     db_user_password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
-    
-    #db_instance_id = 'db-dpa20'
-    #db_name = 'db_accidentes_cdmx'
-    #db_user_name = 'postgres'
-    #db_user_password = 'passwordDB'
-    #subnet_group = 'subnet_gp_dpa20'
-    
+        
     task_complete = False
     def requires(self):
         return ImprimeInicio()
@@ -88,7 +83,7 @@ class CreaInstanciaRDS(luigi.Task):
     
 
 class CreaEsquemasBD(luigi.Task):
-    """ """
+    """ Crea el esquema Raw """
     
     db_instance_id = luigi.Parameter()
     db_name = luigi.Parameter()
@@ -97,12 +92,6 @@ class CreaEsquemasBD(luigi.Task):
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
     
-    #db_instance_id = 'db-dpa20'
-    #db_name = 'db_accidentes_cdmx'
-    #db_user_name = 'postgres'
-    #db_user_password = 'passwordDB'
-    #subnet_group = 'subnet_gp_dpa20'
-    #security_group = 'sg-09b7d6fd6a0daf19a'
     
     task_complete = False
     def requires(self):
@@ -120,12 +109,13 @@ class CreaEsquemasBD(luigi.Task):
     
     
 class CreaTablasBD(luigi.Task):
-    """ """
+    """ Esta tarea crea las tablas del esquema Raw"""
     #db_instance_id = luigi.Parameter()
     #db_name = luigi.Parameter()
     #db_user_name = luigi.Parameter()
     #db_user_password = luigi.Parameter()
     #subnet_group = luigi.Parameter()
+    #security_group = luigi.Parameter()
     
     db_instance_id = 'db-dpa20'
     db_name = 'db_accidentes_cdmx'
@@ -133,6 +123,7 @@ class CreaTablasBD(luigi.Task):
     db_user_password = 'passwordDB'
     subnet_group = 'subnet_gp_dpa20'
     security_group = 'sg-09b7d6fd6a0daf19a'
+    
     
     task_complete = False
     def requires(self):
@@ -169,11 +160,12 @@ class PeticionApiInfoMensual(luigi.Task):
     file = ''
     ext = ''
     # Para la creacion de la base
-    db_instance_id = 'db-dpa2020'
+    db_instance_id = 'db-dpa20'
     db_name = 'db_accidentes_cdmx'
     db_user_name = 'postgres'
     db_user_password = 'passwordDB'
     subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
     
     
     def requires(self):

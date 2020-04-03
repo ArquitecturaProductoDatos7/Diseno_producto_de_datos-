@@ -1,3 +1,4 @@
+# config: utf8
 import boto3
 
 

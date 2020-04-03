@@ -1,3 +1,4 @@
+# config: utf8
 import boto3
 import psycopg2
 
@@ -12,7 +13,7 @@ def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, sec
         subnet_gp: Subnet Group para la base de datos
     """
         
-    rds = boto3.client('rds')
+    rds = boto3.client('rds', region_name='us-east-1')
     
     exito = 0
     try:
@@ -52,8 +53,9 @@ def db_endpoint(db_instance_id):
     """ Esta funcion devuelve el Endpoint de la base db_name"""
     
     print("***** waiting for RDS instance to be ready...zzz... *****\n")
+    
     #esperamos a que la instancia este disponible (180 sec e intentamos 5 veces)
-    rds = boto3.client('rds')
+    rds = boto3.client('rds', region_name='us-east-1')
     waiter = rds.get_waiter('db_instance_available')
     waiter.wait(DBInstanceIdentifier = db_instance_id, 
                 WaiterConfig = {"Delay": 120, "MaxAttempts": 15},
@@ -83,21 +85,24 @@ def connect(db_name, db_user, db_pass, db_endpoint):
         db_endpoint: Endpoint para conectarse a la base
     """
     #client = boto3.client('s3')
-    connection = None
+    #connection = None
     try:
         connection = psycopg2.connect(
                                     host = db_endpoint, #poner el endpoint que haya resultado al crear la instancia de la funcion anterior
                                     port = 5432,
-                                    user = db_user ,
+                                    user = db_user,
+                                    database = db_name,
                                     password = db_pass,
-                                    database = db_name
                                     )
-        return(connection)
+        print("***** This is the conexion *****\n", connection)
+        return connection
     
     except Exception as error:
         print ("***** Unable to connect to the database *****\n", error)
 
         
+    
+    
         
 def create_schemas(db_name, db_user, db_pass, db_endpoint):
     """
