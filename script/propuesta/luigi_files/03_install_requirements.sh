@@ -11,3 +11,4 @@ sudo apt-get install postgresql-client
 sudo apt install awscli
 
 aws configure
+
