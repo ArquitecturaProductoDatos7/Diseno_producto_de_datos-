@@ -58,7 +58,7 @@ def db_endpoint(db_instance_id):
     rds = boto3.client('rds', region_name='us-east-1')
     waiter = rds.get_waiter('db_instance_available')
     waiter.wait(DBInstanceIdentifier = db_instance_id, 
-                WaiterConfig = {"Delay": 120, "MaxAttempts": 15},
+                WaiterConfig = {"Delay": 120, "MaxAttempts": 10},
                )
     print("***** RDS instance {} ready *****\n".format(db_instance_id))
     
@@ -114,7 +114,7 @@ def create_schemas(db_name, db_user, db_pass, db_endpoint):
     try:
         cursor.execute(sql)
         connection.commit()
-    
+        print('***** Schema raw created *****\n')
     except Exception as error:
         print ("***** Unable to create schema raw *****\n", error)
     
@@ -130,7 +130,25 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
     connection = connect(db_name, db_user, db_pass, db_endpoint)
     cursor = connection.cursor()
     sql1 = ("""
-            CREATE TABLE raw.IncidentesViales (id SERIAL PRIMARY KEY NOT NULL, incidentes_viales json NOT NULL);
+            CREATE TABLE raw.IncidentesViales(latitud TEXT,
+                                              folio TEXT,
+                                              geopoint TEXT,
+                                              hora_creacion TEXT,
+                                              delegacion_inicio TEXT,
+                                              dia_semana TEXT,
+                                              fecha_creacion TEXT,
+                                              ano TEXT,
+                                              tipo_entrada TEXT,
+                                              codigo_cierre TEXT,
+                                              hora_cierre TEXT,
+                                              incidente_c4 TEXT,
+                                              mes TEXT,
+                                              delegacion_cierre TEXT,
+                                              fecha_cierre TEXT,
+			                                  mesdecierre TEXT,
+               	                              longitud TEXT,
+                                              clas_con_f_alarma TEXT
+                                             );
           """)
     
     sql2 = ("""
@@ -149,12 +167,13 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
                         ruta TEXT
                         );
           """)
+    
     try:
         cursor.execute(sql1)
         connection.commit()
         cursor.execute(sql2)
         connection.commit()
-    
+        print('***** 2 Tables created*****\n') 
     except Exception as error:
         print ("***** Unable to create tables *****\n", error)
     
