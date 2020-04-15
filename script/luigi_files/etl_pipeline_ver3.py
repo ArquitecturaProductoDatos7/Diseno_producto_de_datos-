@@ -6,9 +6,6 @@ from luigi.contrib.postgres import CopyToTable
 from luigi.mock import MockTarget
 #from luigi.contrib import rdbms
 #from luigi.postgres import PostgresQuery
-#from luigi.contrib.external_program import ExternalProgramTask
-#import luigi.mock
-#import requests
 import pandas as pd
 import getpass
 #import socket   #para ip de metadatos
@@ -45,12 +42,6 @@ class CreaInstanciaRDS(luigi.Task):
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
     
-    #db_instance_id = 'db-dpa20'
-    #db_name = 'db_accidentes_cdmx'
-    #db_user_name = 'postgres'
-    #db_user_password = 'passwordDB'
-    #subnet_group = 'subnet_gp_dpa20'
-    #security_group = 'sg-09b7d6fd6a0daf19a'
     
     task_complete = False
     def requires(self):
@@ -81,14 +72,6 @@ class CreaEsquemasBD(luigi.Task):
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
     
-    #db_instance_id = 'db-dpa20'
-    #db_name = 'db_accidentes_cdmx'
-    #db_user_name = 'postgres'
-    #db_user_password = 'passwordDB'
-    #subnet_group = 'subnet_gp_dpa20'
-    #security_group = 'sg-09b7d6fd6a0daf19a'
-
-
     task_complete = False
     def requires(self):
         return CreaInstanciaRDS(self.db_instance_id, self.db_name, self.db_user_name,
@@ -113,13 +96,6 @@ class CreaTablasBD(luigi.Task):
     db_user_password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
-    
-    #db_instance_id = 'db-dpa20'
-    #db_name = 'db_accidentes_cdmx'
-    #db_user_name = 'postgres'
-    #db_user_password = 'passwordDB'
-    #subnet_group = 'subnet_gp_dpa20'
-    #security_group = 'sg-09b7d6fd6a0daf19a'
     
     task_complete = False
     def requires(self):
@@ -177,7 +153,6 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
         #periodo de fechas mensuales
         dates = pd.period_range(start=str(DATE_START), end=str(date_end), freq='M')
-#     	yield CreaTablasBD(self.db_instance_id, self.db_name, self.db_user_name, self.db_user_password, self.subnet_group, self.security_group)
 
         for date in dates:
             self.year = date.year
