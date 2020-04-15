@@ -28,9 +28,8 @@ def peticion_api_info_mensual(url, mes, ano):
     print("Ano: ", ano, "Mes: ", mes)
 
     # Se especifica que es tipo json y se separan los records de los parametros
-    out = raw.json()
-    records = out['records']
-    met_aux = out['parameters']
+    records = raw.json()['records']
+    met_aux = raw.json()['parameters']
     
     metadata = {'dataset': met_aux['dataset'],
                 'timezone': met_aux['timezone'], 
@@ -67,12 +66,7 @@ def crea_rows_para_registros (record):
     """
     Regresa la informacion de los registros en el formato requerido para subirlo a RDA
     """
-    #l=[]
-    #for campo in record['fields'].keys():
-    #    l.append(record['fields'][campo])
-    l = '\', \''.join([str(record['fields'][campo]) for campo in record['fields'].keys()])
-    l = '\'' +  l + '\'\n'
-    
+    l = [json.dumps(record['fields'][campo]) for campo in record['fields'].keys()]
     return l
 
 
@@ -83,11 +77,6 @@ def crea_rows_para_metadata (meta):
     """
     Regresa la informacion del metadata en el formato requerido para subirlo a RDA
     """
-    #l=[]
-    #for campo in meta.keys():
-    #    l.append(meta[campo])
-    l = '\t'.join([str(meta[campo]) for campo in meta.keys() ]) 
-    l =  l + '\n'
+    l = [json.dumps(meta[campo]) for campo in meta.keys()]
     
     return l
-
