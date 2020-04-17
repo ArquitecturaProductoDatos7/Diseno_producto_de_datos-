@@ -3,7 +3,7 @@
 import pandas as pd
 
 def carga_archivo(archivo):
-    return pd.read_csv(archivo,sep=';')
+    return pd.read_csv(archivo)
 
 
 def observaciones_variables(archivo):
