@@ -30,19 +30,40 @@ class CreaInstanciaRDS(luigi.Task):
         exito = funciones_rds.create_db_instance(self.db_instance_id, self.db_name, self.db_user_name, 
                                          self.db_user_password, self.subnet_group, self.security_group)
         if exito ==1:
-             for i in range(0,8):
+             mins=7
+             for i in range(0,7):
                 time.sleep(60)
-                print("***** Wait...{} min...*****".format(i))
+                print("***** Wait...{} min...*****".format(mins-i))
 
         db_endpoint = funciones_rds.db_endpoint(self.db_instance_id)
-        print("***** RDS endpoint ready *****", db_endpoint)   
-        with self.output().open('w') as out:
-            out.write('RDS creada, ' + str(datetime.datetime.now()) + str(db_endpoint))
+        with self.output().open('w') as outfile:
+            outfile.write(str(db_endpoint))
 
     def output(self):
-        return luigi.LocalTarget('1.instanciaRDS.txt')
+        return luigi.LocalTarget('1.CreaInstanciaRDS.txt')
     
 
+class ObtieneRDSHost(luigi.Task):
+    "Obtiene el endpoint de la RDS creada"
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    def requires(self):
+        return CreaInstanciaRDS(self.db_instance_id, self.db_name, self.db_user_name,
+                                self.db_user_password, self.subnet_group, self.security_group)
+
+    def run(self):
+        #Lee el endpoint del archivo
+        with self.input().open() as infile, self.output().open('w') as outfile:
+             endpoint = infile.read()
+             print("***** Endpont ready *****", endpoint)
+             outfile.write("Endpoint ready")
+    def output(self):
+        return luigi.LocalTarget("2.RDShost.txt")
 
 
 class CreaEsquemaRAW(PostgresQuery):
@@ -62,8 +83,8 @@ class CreaEsquemaRAW(PostgresQuery):
     query = "DROP SCHEMA IF EXISTS raw cascade; CREATE SCHEMA raw;"
 
     def requires(self):
-        return CreaInstanciaRDS(self.db_instance_id, self.database, self.user,
-                                self.password, self.subnet_group, self.security_group)
+        return ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
+                              self.db_user_password, self.subnet_group, self.security_group)
     
 
 
@@ -111,8 +132,8 @@ class CreaTablaRawMetadatos(PostgresQuery):
 
  
     def requires(self):
-        return  CreaTablaRawJson(self.db_instance_id, self.subnet_group, self.security_group,
-                                 self.host, self.database, self.user, self.password),
+         return CreaEsquemaRAW(self.db_instance_id, self.subnet_group, self.security_group,
+                               self.host, self.database, self.user, self.password)
     
 
 
@@ -123,14 +144,6 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     """
     Extrae toda la informacion: desde el inicio (1-Ene-2014) hasta 2 meses antes de la fecha actual
     """
-#    db_instance_id = 'db-dpa20'
-#    db_name = 'db_accidentes_cdmx'
-#    db_user_name = 'postgres'
-#    db_user_password = 'passwordDB'
-#    subnet_group = 'subnet_gp_dpa20'
-#    security_group = 'sg-09b7d6fd6a0daf19a'
-#    host
-
     #Para la creacion de la base
     db_instance_id =  luigi.Parameter()
     db_name = luigi.Parameter()
@@ -152,8 +165,8 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     def requires(self):
         print("...en ExtraeInfoPrimeraVez...")
         # Indica que se debe hacer primero las tareas especificadas aqui
-        return  CreaTablaRawMetadatos(self.db_instance_id, self.subnet_group, self.security_group,
-                                      self.host, self.db_name, self.db_user_name, self.db_user_password)
+        return  [CreaTablaRawJson(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+                 CreaTablaRawMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.db_name, self.db_user_name, self.db_user_password)]
 
 
     def run(self):
@@ -177,20 +190,23 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
             #hacemos el requerimiento para un chunk del los registros
             [records, metadata] = funciones_req.peticion_api_info_mensual(self.data_url, self.meta_url, self.month, self.year)
-            db_endpoint = funciones_rds.db_endpoint(self.db_instance_id)
-            funciones_rds.bulkInsert([(json.dumps(records[i]['fields']) , ) for i in range(0, len(records))], [funciones_req.crea_rows_para_metadata(metadata)] , self.db_name, self.db_user_name, self.db_user_password, db_endpoint)
+            funciones_rds.bulkInsert([(json.dumps(records[i]['fields']) , ) for i in range(0, len(records))], [funciones_req.crea_rows_para_metadata(metadata)] , self.db_name, self.db_user_name, self.db_user_password, self.host)
 
             #Archivo para que Luigi sepa que ya realizo la tarea
             with self.output().open('w') as out:
-                out.write('Archivo: ' + str(self.year) + ' ' + str(self.month) + '\n')
+                out.write('Archivo, ' + str(self.year) + ', ' + str(self.month) + '\n')
  
     def output(self):
-        return luigi.LocalTarget('2.insertarDB.txt')
+        return luigi.LocalTarget('3.InsertarDatos.txt')
 
 
 
 
-     
+
+
+
+
+      
 class ETLpipeline(luigi.WrapperTask):
     date = luigi.DateParameter(default=datetime.date.today())
     db_instance_id = 'db-dpa20-final'
@@ -201,22 +217,11 @@ class ETLpipeline(luigi.WrapperTask):
     security_group = 'sg-09b7d6fd6a0daf19a'
 
 
-    def _requires(self):
-    # this method needs to return an iterable
-    # which contains the _requires of the superclass
-        return task.flatten([
-            # a few tasks you'd like to run before this one but
-            # honestly don't want to use their output data here
-            CreaInstanciaRDS(self.db_instance_id, self.db_name, self.db_user_name,
-                             self.db_user_password, self.subnet_group, self.security_group),
-            # important! "CLASSNAME" needs to be adjusted
-            super(ETLpipeline, self)._requires()
-            ])
-
     def requires(self):
-        print("requires in wrapper")
+        return ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
+                             self.db_user_password, self.subnet_group, self.security_group)
         host = funciones_rds.db_endpoint(self.db_instance_id)
-        yield ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
                                    self.db_user_password, self.subnet_group, self.security_group, host)
 
 
@@ -225,5 +230,5 @@ class ETLpipeline(luigi.WrapperTask):
             out_file.write("Successfully ran pipeline on {}".format(self.date))
 
     def output(self):
-        return luigi.LocalTarget("SuccessfullyETL.txt")
+        return luigi.LocalTarget("4.ETLSuccessful.txt")
 
