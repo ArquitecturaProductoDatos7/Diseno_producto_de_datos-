@@ -33,14 +33,14 @@ def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, sec
             VpcSecurityGroupIds = [security_gp],
             )
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            print("***** Successfully create RDS instance *****\n ***** Waiting for RDS instance ****")    
-            waiter = rds.get_waiter('db_instance_available')
-            waiter.wait(DBInstanceIdentifier = db_instance_id)
+            print("***** Successfully create RDS instance *****\n ***** Waiting for RDS instance to be available *****")    
+#            waiter = rds.get_waiter('db_instance_available')
+#            waiter.wait(DBInstanceIdentifier = db_instance_id)
+#            waiter.wait(DBInstanceIdentifier = db_instance_id, WaiterConfig = {"Delay": 100, "MaxAttempts": 7})
             exito = 1
-            print("***** RDS instance available *****\n")    
         
     except rds.exceptions.DBInstanceAlreadyExistsFault:
-        exito = 1
+        exito = 2
         print ("***** RDS instance already exists *****\n")
         
     except Exception as error:
@@ -55,13 +55,7 @@ def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, sec
 def db_endpoint(db_instance_id):
     """ Esta funcion devuelve el Endpoint de la base db_name"""
     
-#    print("***** waiting for RDS instance to be ready...zzz... *****\n")
-    
-    #esperamos a que la instancia este disponible (180 sec e intentamos 5 veces)
     rds = boto3.client('rds', region_name='us-east-1')
-#    waiter = rds.get_waiter('db_instance_available')
-#    waiter.wait(DBInstanceIdentifier = db_instance_id)
-#                WaiterConfig = {"Delay": 120, "MaxAttempts": 7},
                
 #    print("***** RDS instance {} ready *****\n".format(db_instance_id))
     
@@ -71,7 +65,7 @@ def db_endpoint(db_instance_id):
     for i in range(0, len(dbs.get('DBInstances'))):
         if dbs.get('DBInstances')[i].get('DBInstanceIdentifier') == db_instance_id:
             endpoint = dbs.get('DBInstances')[i].get('Endpoint').get('Address')
-            print('***** RDS instance Endpoint *****\n')
+            print('***** RDS instance Endpoint ready *****\n', endpoint)
     
     return endpoint
  
