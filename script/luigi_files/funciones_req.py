@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-def peticion_api_info_mensual(url, mes, ano):
+def peticion_api_info_mensual(url_data, url_meta, mes, ano):
     """
     Esta funcion obtiene los registros de la API por mes y ano, desde el 2014
         mes es un entero para el mes que se quiere: 1,2,3,...,12
@@ -21,22 +21,25 @@ def peticion_api_info_mensual(url, mes, ano):
     date_time = datetime.datetime.now()
 
     # rows = -1 indica todos los registros 
-    parameters = {'rows': -1, 'refine.mes':mes, 'refine.ano':ano}
+    parameters_data = {'refine.mes':mes, 'refine.ano':ano,  'format': 'json'}
+    parameters_meta = {'refine.mes':mes, 'refine.ano':ano,  'rows': 100}
     # Hacemos el requerimiento de la informacion
-    raw = requests.get(url, params = parameters)
+    raw = requests.get(url_data, params = parameters_data)
+    meta = requests.get(url_meta, params = parameters_meta)
     print("******* Estatus ******\n", raw.status_code)
     print("Ano: ", ano, "Mes: ", mes)
 
     # Se especifica que es tipo json y se separan los records de los parametros
-    records = raw.json()['records']
-    met_aux = raw.json()['parameters']
+    records = raw.json()
+    meta =  meta.json()
+    met_aux = meta['parameters']
     
     metadata = {'dataset': met_aux['dataset'],
                 'timezone': met_aux['timezone'], 
-                'rows' : met_aux['rows'], 
+                'rows' : meta['nhits'], 
                 'parametro_ano': met_aux['refine']['ano'],
                 'parametro_mes': met_aux['refine']['mes'],
-                'parametro_url': url,
+                'parametro_url': url_data,
                 'fecha_de_ejecucion': date_time.strftime("%d/%m/%Y %H:%M:%S"), 
                 'ip_address': ip_address, 
                 'usuario':  getpass.getuser(), 
@@ -66,7 +69,12 @@ def crea_rows_para_registros (record):
     """
     Regresa la informacion de los registros en el formato requerido para subirlo a RDA
     """
-    l = [json.dumps(record['fields'][campo]) for campo in record['fields'].keys()]
+   # l=[]
+   # for campo in record['fields'].keys():
+   #     l.append((record['fields'][campo], "TEXT"))
+   # l = '\', \''.join([str(record['fields'][campo]) for campo in record['fields'].keys()])
+   # l = '(\'' +  l + '\'),\n'
+    l = [json.dumps(record[i]['fields']) for i in range(0, len(record))]
     return l
 
 
@@ -77,6 +85,12 @@ def crea_rows_para_metadata (meta):
     """
     Regresa la informacion del metadata en el formato requerido para subirlo a RDA
     """
+    #l=[]
+    #for campo in meta.keys():
+    #    l.append(meta[campo])
+    #l = '\', \''.join([str(meta[campo]) for campo in meta.keys() ]) 
+    #l = '(\'' +  l + '\'),\n'
     l = [json.dumps(meta[campo]) for campo in meta.keys()]
     
     return l
+
