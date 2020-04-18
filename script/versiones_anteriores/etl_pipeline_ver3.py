@@ -117,12 +117,6 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     """
     Extrae toda la informacion: desde el inicio (1-Ene-2014) hasta 2 meses antes de la fecha actual
     """
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
     #Ruta de la API
     data_url = "https://datos.cdmx.gob.mx/api/records/1.0/search/?dataset=incidentes-viales-c5"
     #Parametros de fechas
@@ -130,12 +124,12 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     month = 0
     
     #Para la creacion de la base
-#    db_instance_id = 'db-dpa20'
-#    db_name = 'db_accidentes_cdmx'
-#    db_user_name = 'postgres'
-#    db_user_password = 'passwordDB'
-#    subnet_group = 'subnet_gp_dpa20'
-#    security_group = 'sg-09b7d6fd6a0daf19a'
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_accidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
             
     def requires(self):
         print("este es in require task de info primera vez")
@@ -180,60 +174,3 @@ class ExtraeInfoPrimeraVez(luigi.Task):
        # return MockTarget("BaseTask")
         return luigi.LocalTarget('words.txt')
 
-
-
-
-class InsertaRegistrosAInstanciaRDS(CopyToTable):
-    """ Inserta la informacion a RDS """
-    
-    #Para la creacion de la base
-    #db_instance_id = luigi.Parameter()
-    #db_name = luigi.Parameter()
-    #db_user_name = luigi.Parameter()
-    #db_user_password = luigi.Parameter()
-    #subnet_group = luigi.Parameter()
-    #security_group = luigi.Parameter()
-    db_instance_id = 'db-dpa20-2'
-    db_name = 'db_accidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    
-    host = funciones_rds.db_endpoint(db_instance_id)
-    database = db_name 
-    user = db_user_name
-    password =  db_user_password
-    schema = 'raw'
-    table = 'IncidentesViales'
-    
-    print("estoy en copyto table")
-
-    columns = [("latitud", "TEXT"),
-               ("folio", "TEXT"),
-               ("geopoint", "TEXT"),
-               ("hora_creacion", "TEXT"),
-               ("delegacion_inicio", "TEXT"),
-               ("dia_semana", "TEXT"),
-               ("fecha_creacion", "TEXT"),
-               ("ano", "TEXT"),
-               ("tipo_entrada", "TEXT"),
-               ("codigo_cierre", "TEXT"),
-               ("hora_cierre", "TEXT"),
-               ("incidente_c4", "TEXT"),
-               ("mes", "TEXT"),
-               ("delegacion_cierre", "TEXT"),
-               ("fecha_cierre", "TEXT"),
-               ("mesdecierre", "TEXT"),
-               ("longitud", "TEXT"),
-               ("clas_con_f_alarma", "TEXT"),
-              ]
-
-    def requires(self):
-        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name, self.db_user_password, self.subnet_group, self.security_group)
-        
-    def rows(self):
-        with self.input().open('r') as fobj:
-           for line in fobj:
-#               print(line)
-               yield line
