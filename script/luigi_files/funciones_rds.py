@@ -87,8 +87,6 @@ def connect(db_name, db_user, db_pass, db_endpoint):
         db_pass: Password para conectarse a la base de datos
         db_endpoint: Endpoint para conectarse a la base
     """
-    #client = boto3.client('s3')
-    #connection = None
     try:
         connection = psycopg2.connect(
                                     host = db_endpoint, #poner el endpoint que haya resultado al crear la instancia de la funcion anterior
@@ -114,17 +112,18 @@ def create_schemas(db_name, db_user, db_pass, db_endpoint):
     connection = connect(db_name, db_user, db_pass, db_endpoint)
     cursor = connection.cursor()
     sql = 'DROP SCHEMA IF EXISTS raw cascade; CREATE SCHEMA raw;'
-    #sql = 'CREATE SCHEMA raw;'
+    exito = 0
     try:
         cursor.execute(sql)
         connection.commit()
+        exito = 1
         print('***** Schema raw created *****\n')
     except Exception as error:
         print ("***** Unable to create schema raw *****\n", error)
     
     cursor.close()
     connection.close()
-
+    return exito
     
     
 def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
@@ -134,24 +133,24 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
     connection = connect(db_name, db_user, db_pass, db_endpoint)
     cursor = connection.cursor()
     sql1 = ("""
-            CREATE TABLE raw.IncidentesViales(latitud TEXT,
-                                              folio TEXT,
-                                              geopoint TEXT,
-                                              hora_creacion TEXT,
-                                              delegacion_inicio TEXT,
-                                              dia_semana TEXT,
-                                              fecha_creacion TEXT,
-                                              ano TEXT,
-                                              tipo_entrada TEXT,
-                                              codigo_cierre TEXT,
-                                              hora_cierre TEXT,
-                                              incidente_c4 TEXT,
-                                              mes TEXT,
-                                              delegacion_cierre TEXT,
-                                              fecha_cierre TEXT,
-			                      mesdecierre TEXT,
-               	                              longitud TEXT,
-                                              clas_con_f_alarma TEXT
+            CREATE TABLE raw.IncidentesViales(latitud FLOAT,
+                                              folio VARCHAR,
+                                              geopoint TEXT [],
+                                              hora_creacion VARCHAR,
+                                              delegacion_inicio VARCHAR,
+                                              dia_semana VARCHAR,
+                                              fecha_creacion VARCHAR,
+                                              ano VARCHAR,
+                                              tipo_entrada VARCHAR,
+                                              codigo_cierre VARCHAR,
+                                              hora_cierre VARCHAR,
+                                              incidente_c4 VARCHAR,
+                                              mes VARCHAR,
+                                              delegacion_cierre VARCHAR,
+                                              fecha_cierre VARCHAR,
+			                      mesdecierre VARCHAR,
+               	                              longitud FLOAT,
+                                              clas_con_f_alarma VARCHAR
                                              );
           """)
     
@@ -169,35 +168,41 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
                                        formato_archivo TEXT
                                       );
           """)
-    
+     
+    sql3= ("""
+            CREATE TABLE raw.IncidentesVialesJson(
+                                                  properties JSON NOT NULL
+                                                 );
+            """)
+#data_point_id SERIAL PRIMARY KEY NOT NULL,
+    exito = 0
     try:
         cursor.execute(sql1)
         connection.commit()
         cursor.execute(sql2)
         connection.commit()
+        cursor.execute(sql3)
+        connection.commit()
+        exito = 1
         print('***** Tables created*****\n') 
     except Exception as error:
         print ("***** Unable to create tables *****\n", error)
     
     cursor.close()
     connection.close()
+    return exito
 
 
     
+
+
+
 def bulkInsert(records, meta, db_name, db_user, db_pass, db_endpoint):
     try:
         connection = connect(db_name, db_user, db_pass, db_endpoint)
         cursor = connection.cursor()
-        sql_insert_records = """ INSERT INTO raw.IncidentesViales (latitud, folio,
-                                                                geopoint, hora_creacion,
-                                                                delegacion_inicio, dia_semana,
-                                                                fecha_creacion, ano,
-                                                                tipo_entrada, codigo_cierre,
-                                                                hora_cierre, incidente_c4, 
-                                                                mes, delegacion_cierre, 
-                                                                fecha_cierre, mesdecierre, 
-                                                                longitud, clas_con_f_alarma) 
-                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s); """
+        sql_insert_records = """ INSERT INTO raw.IncidentesVialesJson (registros) 
+                                 VALUES (%s); """
 
         sql_insert_metadata = """ INSERT INTO raw.metadatos  (dataset, timezone,
                                                               rows, refine_ano, 
@@ -211,7 +216,7 @@ def bulkInsert(records, meta, db_name, db_user, db_pass, db_endpoint):
         # executemany() to insert multiple rows rows
         cursor.executemany(sql_insert_records, records)
         connection.commit()
-        print("***** {} Records inserted successfully into table *****".forma(cursor.rowcount))
+        print("***** {} Records inserted successfully into table *****".format(cursor.rowcount))
         cursor.executemany(sql_insert_metadata, meta)
         connection.commit()
         print("***** {} Metadata record inserted successfully *****".format(cursor.rowcount))
@@ -225,3 +230,7 @@ def bulkInsert(records, meta, db_name, db_user, db_pass, db_endpoint):
             cursor.close()
             connection.close()
             print("***** PostgreSQL connection is closed *****")
+
+
+
+
