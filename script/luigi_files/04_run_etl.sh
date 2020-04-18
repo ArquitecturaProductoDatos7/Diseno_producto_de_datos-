@@ -1,4 +1,4 @@
 #!/bin/bash
 
-# Corre hasta la tarea CreaEsquemaCLEAN
- PYTHONPATH='.' luigi --module etl_pipeline_ver4 CreaEsquemaCLEAN --local-scheduler
+# Corre las tareas del ETLpipeline
+ PYTHONPATH='.' luigi --module etl_pipeline_ver5 ETLpipeline --local-scheduler
