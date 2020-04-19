@@ -7,7 +7,6 @@ from luigi import task
 import pandas as pd
 from numpy import ndarray as np
 import getpass
-#import socket   #para ip de metadatos
 import funciones_rds
 import funciones_s3
 import funciones_req
@@ -41,6 +40,7 @@ class CreaInstanciaRDS(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget('1.CreaInstanciaRDS.txt')
+
     
 
 class ObtieneRDSHost(luigi.Task):
@@ -62,6 +62,7 @@ class ObtieneRDSHost(luigi.Task):
              endpoint = infile.read()
              print("***** Endpont ready *****", endpoint)
              outfile.write("Endpoint ready")
+
     def output(self):
         return luigi.LocalTarget("2.RDShost.txt")
 
@@ -83,13 +84,12 @@ class CreaEsquemaRAW(PostgresQuery):
     query = "DROP SCHEMA IF EXISTS raw cascade; CREATE SCHEMA raw;"
 
     def requires(self):
-        return ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
-                              self.db_user_password, self.subnet_group, self.security_group)
-    
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
 
 
 
-    
+
 class CreaTablaRawJson(PostgresQuery):
     
     #Para la creacion de la base
@@ -110,8 +110,6 @@ class CreaTablaRawJson(PostgresQuery):
          return CreaEsquemaRAW(self.db_instance_id, self.subnet_group, self.security_group,
                                self.host, self.database, self.user, self.password)
 
-    
-
 
 class CreaTablaRawMetadatos(PostgresQuery):
 
@@ -127,10 +125,8 @@ class CreaTablaRawMetadatos(PostgresQuery):
     password = luigi.Parameter()
 
     table = ""
+    query = "CREATE TABLE raw.Metadatos(dataset VARCHAR, timezone VARCHAR, rows INT, refine_ano VARCHAR, refine_mes VARCHAR, parametro_url VARCHAR, fecha_ejecucion VARCHAR, ip_address VARCHAR, usuario VARCHAR, nombre_archivo VARCHAR, formato_archivo VARCHAR); "
 
-    query = "CREATE TABLE raw.Metadatos(dataset VARCHAR, timezone VARCHAR, rows INT, refine_ano VARCHAR, refine_mes VARCHAR, parametro_url VARCHAR, fecha_ejecucion VARCHAR, ip_address VARCHAR, usuario VARCHAR, nombre_archivo VARCHAR, formato_archivo VARCHAR ); "
-
- 
     def requires(self):
          return CreaEsquemaRAW(self.db_instance_id, self.subnet_group, self.security_group,
                                self.host, self.database, self.user, self.password)
@@ -165,16 +161,17 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     def requires(self):
         print("...en ExtraeInfoPrimeraVez...")
         # Indica que se debe hacer primero las tareas especificadas aqui
-        return  [CreaTablaRawJson(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+        return  [CreaTablaRawJson(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.db_name, self.db_user_name, self.db_user_password),
                  CreaTablaRawMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.db_name, self.db_user_name, self.db_user_password)]
 
 
     def run(self):
         #Parametros de los datos
-#        DATE_START = datetime.date(2014,1,1)
-        DATE_START = datetime.date(2020,1,1)
+        DATE_START = datetime.date(2014,1,1)
+#        DATE_START = datetime.date(2020,1,1)
         date_today = datetime.date.today()
         day = date_today.day
+        print("dia de hoy", day )
         if day > 15:
             date_end = datetime.date(date_today.year, date_today.month - 1, 1)
         else:
@@ -192,10 +189,10 @@ class ExtraeInfoPrimeraVez(luigi.Task):
             [records, metadata] = funciones_req.peticion_api_info_mensual(self.data_url, self.meta_url, self.month, self.year)
             funciones_rds.bulkInsert([(json.dumps(records[i]['fields']) , ) for i in range(0, len(records))], [funciones_req.crea_rows_para_metadata(metadata)] , self.db_name, self.db_user_name, self.db_user_password, self.host)
 
-            #Archivo para que Luigi sepa que ya realizo la tarea
-            with self.output().open('w') as out:
-                out.write('Archivo, ' + str(self.year) + ', ' + str(self.month) + '\n')
- 
+        #Archivo para que Luigi sepa que ya realizo la tarea
+        with self.output().open('w') as out:
+            out.write('Archivo ' + str(self.year) + str(self.month) + '\n')
+  
     def output(self):
         return luigi.LocalTarget('3.InsertarDatos.txt')
 
@@ -203,13 +200,32 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
 
 
+class CreaEsquemaCLEANED(PostgresQuery):
+
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "DROP SCHEMA IF EXISTS cleaned cascade; CREATE SCHEMA cleaned;"
+
+    def requires(self):
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
 
 
 
       
 class ETLpipeline(luigi.WrapperTask):
     date = luigi.DateParameter(default=datetime.date.today())
-    db_instance_id = 'db-dpa20-final'
+    db_instance_id = 'db-dpa20'
     db_name = 'db_accidentes_cdmx'
     db_user_name = 'postgres'
     db_user_password = 'passwordDB'
@@ -220,12 +236,15 @@ class ETLpipeline(luigi.WrapperTask):
     def requires(self):
         return ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
                              self.db_user_password, self.subnet_group, self.security_group)
-        host = funciones_rds.db_endpoint(self.db_instance_id)
-        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
-                                   self.db_user_password, self.subnet_group, self.security_group, host)
-
 
     def run(self):
+        host = funciones_rds.db_endpoint(self.db_instance_id)
+        yield ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                   self.db_user_password, self.subnet_group, self.security_group, host)
+        yield CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
+                                 host, self.db_name, self.db_user_name, self.db_user_password)
+    
+
         with self.output().open('w') as out_file:
             out_file.write("Successfully ran pipeline on {}".format(self.date))
 
