@@ -54,11 +54,5 @@ Se encontró que tenemos registros faltantes en las siguientes variables : hora_
 De igual manera se creó la variable target (dummy) que indica un 1 si la llamada registrada fue **afirmativa** y 0 en los demás casos. Consideramos únicamente como 1 a las llamadas registradas con el código de "a", debido a que las que son clasificadas con "i" realmente son informativas y proporcionan información adicional a una llamada ya registrada.
 
 #### 3) Análisis Gráfico Exploratorio
-![Gráfica 9](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_9.png)![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_8.png)![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_2.png)![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_3.png)
-
-
-
-
-
-
-
+<br>  <hr> 
+![Gráfica 9](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_9.png)![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen3.png)![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_8.png)![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_2.png)
