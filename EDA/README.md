@@ -2,7 +2,7 @@
 ## EDA (Exploratory Data Analysis)
 
 ##### Fuente de la base de datos
-Centro de Comando, Control, Cómputo, Comunicaciones y Contacto Ciudadano de la Ciudad de México (C5)
+Centro de Comando, Control, Cómputo, Comunicaciones y Contacto Ciudadano de la Ciudad de México (C5).
 
 ### Objetivo del problema
 Realizar un modelo para precedir si la llamada que recibe el Centro de Comdando (C5) es **verdadera**, esto con el fin de lograr una mejor asiganción de recursos de este organismo, debido a que muchas de las llamadas que reciben son falsas.
@@ -54,6 +54,8 @@ Se encontró que tenemos registros faltantes en las siguientes variables : hora_
 De igual manera se creó la variable target (dummy) que indica un 1 si la llamada registrada fue **afirmativa** y 0 en los demás casos. Consideramos únicamente como 1 a las llamadas registradas con el código de "a", debido a que las que son clasificadas con "i" realmente son informativas y proporcionan información adicional a una llamada ya registrada.
 
 #### 3) Análisis Gráfico Exploratorio
+
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/imagenes_eda/grafica_9.png)
 
 
 
