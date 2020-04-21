@@ -56,10 +56,18 @@ De igual manera se creó la variable target (dummy) que indica un 1 si la llamad
 #### 3) Análisis Gráfico Exploratorio
 
 Gráfica 9:
+<p align="left">
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_9.png)
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_8.png):height="75px" width="300px" align="left"
-![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_2.png "title-1")
-![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_3.png "title-2")
+  </p>
+<p align="left">
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_8.png)
+  </p>
+<p align="left">
+![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_2.png)
+  </p>
+<p align="left">
+![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_3.png)
+  </p>
 
 
 
