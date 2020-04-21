@@ -199,7 +199,6 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
 
 
-
 class CreaEsquemaCLEANED(PostgresQuery):
 
     #Para la creacion de la base
@@ -219,9 +218,81 @@ class CreaEsquemaCLEANED(PostgresQuery):
     def requires(self):
         return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
                               self.password, self.subnet_group, self.security_group)
+    
 
+class CreaTablaCleanedIncidentes(PostgresQuery):
 
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
 
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "CREATE TABLE cleaned.IncidentesViales(hora_creacion VARCHAR, delegacion_inicio VARCHAR, dia_semana VARCHAR, tipo_entrada VARCHAR, mes SMALLINT, latitud FLOAT, longitud FLOAT, ano INT); "
+
+    def requires(self):
+         return CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
+                               self.host, self.database, self.user, self.password)    
+
+class FuncionRemovePoints(PostgresQuery):
+    """
+    Funciones auxiliares para la limpieza de los datos
+    """
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    
+    #Funcion para eliminar puntos
+    table = ""
+    query="""
+          CREATE OR REPLACE FUNCTION remove_points
+         (
+            column_text text
+         )
+          returns text
+          language sql
+          as $$
+          select regexp_replace(column_text, '\.','','g');
+          $$;
+          """
+     
+
+class LimpiaInfoPrimeraVez(PostgresQuery):
+    """
+    Limpia toda la informacion: desde el inicio (1-Ene-2014) hasta 2 meses antes de la fecha actual
+    """
+    #Para la creacion de la base
+    db_instance_id =  luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    
+    table = ""
+    query = "INSERT INTO cleaned.IncidentesViales SELECT registros->>'hora_creacion', remove_points(LOWER(registros->>'delegacion_inicio')),unaccent(LOWER(registros->>'dia_semana')), unaccent(LOWER(registros->>'tipo_entrada')),(registros->>'mes')::smallint, (registros->>'latitud')::float, (registros->>'longitud')::float, (registros->>'ano')::int from raw.IncidentesVialesJson; "
+           
+    def requires(self):
+        print("...en LimpiaInfoPrimeraVez...")
+        # Indica que se debe hacer primero las tareas especificadas aqui
+        return  [CreaTablaCleanedIncidentes(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password)]
+                 
+                 
+    
       
 class ETLpipeline(luigi.WrapperTask):
     date = luigi.DateParameter(default=datetime.date.today())
@@ -241,8 +312,8 @@ class ETLpipeline(luigi.WrapperTask):
         host = funciones_rds.db_endpoint(self.db_instance_id)
         yield ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
                                    self.db_user_password, self.subnet_group, self.security_group, host)
-        yield CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
-                                 host, self.db_name, self.db_user_name, self.db_user_password)
+        yield LimpiaInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                   self.db_user_password, self.subnet_group, self.security_group, host)
     
 
         with self.output().open('w') as out_file:
