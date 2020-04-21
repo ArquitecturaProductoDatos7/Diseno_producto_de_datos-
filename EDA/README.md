@@ -57,7 +57,7 @@ De igual manera se creó la variable target (dummy) que indica un 1 si la llamad
 
 Gráfica 9:
 <p align="left">
-<(https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_9.png>
+<"https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_9.png">
   </p>
 <p align="left">
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/grafica_8.png)
