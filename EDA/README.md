@@ -57,13 +57,13 @@ De igual manera se creó la variable target (dummy) que indica un 1 si la llamad
 <br>  <hr> 
 ![Gráfica 9](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_9.png)
 En la gráfica 9, se obtiene que la delegación que tiene mayor número de llamadas es Iztapalapa y la que menor registros tiene es milpa alta, esto además esta segmentado según el nuestra variable target.
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen3.png)!
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen3.png)
 En la gráfica 3, lo que buscamos representar son horas pico, es decir el horario en el cuál se el C5 recibe un mayor número de llamadas, y con la información de la gráfica se obtiene que los horarios con más volumen de llamadas son entre las 19:00 y 20:00.
-[alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_8.png)!
+![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_8.png)
 Con la información de la gráfica 8, que la variable target tiene mas casos positivos en todos los tipos entrada ( medio por el cual se comunican las personas), excepto en la llamadas al 911, justamente en ese caso hay menos casos positivos de las llamadas registradas.
-[alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_2.png)!
+![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen_2.png)
 De acuerdo a la gráfica 2, el día de la semana que mayor número de llamadas tiene es el viernes, lo cual es bastante factible porque es fin de semana y muchas personas salen de su rutina en ese día, del mismo modo el día domingo es el que menos casos tiene registrado pues se espera que en ese día la gente descanse.
-[alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen5.png)
+![alt-text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/c5-01/EDA/imagenes_eda/imagen5.png)
 En la gráfica 5 obtuvimos un comportamiento contrario entre el código de cierre **a** y **d**, ya que a partir de finales del 2016 las llamadas "Afirmativas" comenzaron a decaer y las "Duplicadas" empezaron a tener tendencia positiva.
 
 ##### Conclusiones
