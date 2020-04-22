@@ -24,24 +24,25 @@ class CreaInstanciaRDS(luigi.Task):
     db_user_password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
-    
+
     def run(self):
         exito = funciones_rds.create_db_instance(self.db_instance_id, self.db_name, self.db_user_name, 
                                          self.db_user_password, self.subnet_group, self.security_group)
         if exito ==1:
-             mins=7
-             for i in range(0,7):
+            mins=8
+            for i in range(0,7):
                 time.sleep(60)
                 print("***** Wait...{} min...*****".format(mins-i))
 
         db_endpoint = funciones_rds.db_endpoint(self.db_instance_id)
+
         with self.output().open('w') as outfile:
             outfile.write(str(db_endpoint))
 
     def output(self):
         return luigi.LocalTarget('1.CreaInstanciaRDS.txt')
 
-    
+
 
 class ObtieneRDSHost(luigi.Task):
     "Obtiene el endpoint(host) de la RDS creada"
@@ -65,6 +66,7 @@ class ObtieneRDSHost(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget("2.RDShost.txt")
+
 
 
 class CreaEsquemaRAW(PostgresQuery):
@@ -111,6 +113,8 @@ class CreaTablaRawJson(PostgresQuery):
                                self.host, self.database, self.user, self.password)
 
 
+
+
 class CreaTablaRawMetadatos(PostgresQuery):
     "Crea la tabla de los metadatos dentro del esquema RAW"
     #Para la creacion de la base
@@ -130,7 +134,6 @@ class CreaTablaRawMetadatos(PostgresQuery):
     def requires(self):
          return CreaEsquemaRAW(self.db_instance_id, self.subnet_group, self.security_group,
                                self.host, self.database, self.user, self.password)
-    
 
 
 
@@ -157,8 +160,8 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     #Parametros de fechas
     year = 0
     month = 0
-    
-            
+
+
     def requires(self):
         # Indica que se debe hacer primero las tareas especificadas aqui
         return  [CreaTablaRawJson(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.db_name, self.db_user_name, self.db_user_password),
@@ -167,8 +170,8 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
     def run(self):
         #Parametros de los datos
-        DATE_START = datetime.date(2014,1,1)
-#        DATE_START = datetime.date(2020,1,1)
+#        DATE_START = datetime.date(2014,1,1)
+        DATE_START = datetime.date(2020,2,1)
         date_today = datetime.date.today()
         day = date_today.day
         if day > 15:
@@ -182,7 +185,7 @@ class ExtraeInfoPrimeraVez(luigi.Task):
         for date in dates:
             self.year = date.year
             self.month = date.month
-            
+
 
             #hacemos el requerimiento para un chunk del los registros
             [records, metadata] = funciones_req.peticion_api_info_mensual(self.data_url, self.meta_url, self.month, self.year)
@@ -191,7 +194,7 @@ class ExtraeInfoPrimeraVez(luigi.Task):
         #Archivo para que Luigi sepa que ya realizo la tarea
         with self.output().open('w') as out:
             out.write('Archivo ' + str(self.year) + str(self.month) + '\n')
-  
+
     def output(self):
         return luigi.LocalTarget('3.InsertarDatos.txt')
 
@@ -221,12 +224,111 @@ class CreaEsquemaCLEANED(PostgresQuery):
 
 
 
-      
-class ETLpipeline(luigi.WrapperTask):
-    "Esta tarea solo define los parametros y corre las demas tareas"
 
+class CreaTablaCleanedIncidentes(PostgresQuery):
+
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "CREATE TABLE cleaned.IncidentesViales(hora_creacion VARCHAR, delegacion_inicio VARCHAR, dia_semana VARCHAR, tipo_entrada VARCHAR, mes SMALLINT, latitud FLOAT, longitud FLOAT, ano INT); "
+
+    def requires(self):
+         return CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+
+
+
+class FuncionRemovePoints(PostgresQuery):
+    """
+    Funciones auxiliares para la limpieza de los datos
+    """
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    #Funcion para eliminar puntos
+    table = ""
+    query="""
+          CREATE OR REPLACE FUNCTION remove_points
+         (
+            column_text text
+         )
+          returns text
+          language sql
+          as $$
+          select regexp_replace(column_text, '\.','','g');
+          $$;
+          """
+
+
+class FuncionUnaccent(PostgresQuery):
+    """
+    Funciones auxiliares para la limpieza de los datos
+    """
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    #Funcion para eliminar puntos
+    table = ""
+    query="CREATE EXTENSION unaccent;"
+
+
+
+
+class LimpiaInfoPrimeraVez(PostgresQuery):
+    """
+    Limpia toda la informacion: desde el inicio (1-Ene-2014) hasta 2 meses antes de la fecha actual
+    """
+    #Para la creacion de la base
+    db_instance_id =  luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+
+    table = ""
+    query = "INSERT INTO cleaned.IncidentesViales SELECT registros->>'hora_creacion', remove_points(LOWER(registros->>'delegacion_inicio')),unaccent(LOWER(registros->>'dia_semana')), unaccent(LOWER(registros->>'tipo_entrada')),(registros->>'mes')::smallint, (registros->>'latitud')::float, (registros->>'longitud')::float, (registros->>'ano')::int from raw.IncidentesVialesJson; "
+
+    def requires(self):
+        print("...en LimpiaInfoPrimeraVez...")
+        # Indica que se debe hacer primero las tareas especificadas aqui
+        return  [CreaTablaCleanedIncidentes(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), 
+                 FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+                 FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password)]
+
+
+
+
+
+class ETLpipeline(luigi.WrapperTask):
     date = luigi.DateParameter(default=datetime.date.today())
-    db_instance_id = 'db-dpa20'
+    db_instance_id = 'db-dpa20-prueba2'
     db_name = 'db_accidentes_cdmx'
     db_user_name = 'postgres'
     db_user_password = 'passwordDB'
@@ -242,13 +344,12 @@ class ETLpipeline(luigi.WrapperTask):
         host = funciones_rds.db_endpoint(self.db_instance_id)
         yield ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
                                    self.db_user_password, self.subnet_group, self.security_group, host)
-        yield CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
-                                 host, self.db_name, self.db_user_name, self.db_user_password)
-    
+        print('dentro de main antes de limpia')
+        yield LimpiaInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                   self.db_user_password, self.subnet_group, self.security_group, host)
 
         with self.output().open('w') as out_file:
-            out_file.write("Successfully ran pipeline on {}".format(self.date))
+            out_file.write("uccessfully ran pipeline on {}".format(self.date))
 
     def output(self):
-        return luigi.LocalTarget("4.ETLSuccessful.txt")
-
+        return luigi.LocalTarget("4.ETLSuccessful2.txt")
