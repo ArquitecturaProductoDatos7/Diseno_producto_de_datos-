@@ -254,7 +254,8 @@ class CreaTablaCleanedIncidentes(PostgresQuery):
                                                   mes SMALLINT,
                                                   latitud FLOAT,
                                                   longitud FLOAT,
-                                                  ano INT);
+                                                  ano INT,
+                                                  codigo_cierre VARCHAR);
             """
 
     def requires(self):
@@ -320,7 +321,7 @@ class FuncionRemovePoints(PostgresQuery):
           returns text
           language sql
           as $$
-          select regexp_replace(column_text, '\.','','g');
+          select regexp_replace(column_text, '\.|,|\/','','g');
           $$;
           """
 
@@ -374,7 +375,8 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
                    (registros->>'mes')::smallint,
                    (registros->>'latitud')::float,
                    (registros->>'longitud')::float,
-                   (registros->>'ano')::int
+                   (registros->>'ano')::int,
+                   unaccent(remove_points(LOWER(registros->>'codigo_cierre')))
             FROM raw.IncidentesVialesJson;
             """
 
