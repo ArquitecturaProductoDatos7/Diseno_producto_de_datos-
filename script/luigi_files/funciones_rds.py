@@ -12,12 +12,12 @@ def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, sec
         db_pass: Password para conectarse a la base de datos
         subnet_gp: Subnet Group para la base de datos
     """
-        
+
     rds = boto3.client('rds', region_name='us-east-1')
-    
+
     exito = 0
     try:
-        
+
         response = rds.create_db_instance(
             DBName = db_name,
             DBInstanceIdentifier = db_instance_id,
@@ -33,45 +33,44 @@ def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, sec
             VpcSecurityGroupIds = [security_gp],
             )
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            print("***** Successfully create RDS instance *****\n ***** Waiting for RDS instance to be available *****")    
+            print("***** Successfully create RDS instance *****\n ***** Waiting for RDS instance to be available *****")   
 #            waiter = rds.get_waiter('db_instance_available')
 #            waiter.wait(DBInstanceIdentifier = db_instance_id)
 #            waiter.wait(DBInstanceIdentifier = db_instance_id, WaiterConfig = {"Delay": 100, "MaxAttempts": 7})
             exito = 1
-        
+
     except rds.exceptions.DBInstanceAlreadyExistsFault:
         exito = 2
         print ("***** RDS instance already exists *****\n")
-        
+
     except Exception as error:
         print ("***** Couldn't create RDS instance *****\n", error)
-        
-    
+
     return exito
 
 
 
-        
+
 def db_endpoint(db_instance_id):
     """ Esta funcion devuelve el Endpoint de la base db_name"""
-    
+
     rds = boto3.client('rds', region_name='us-east-1')
-               
+
 #    print("***** RDS instance {} ready *****\n".format(db_instance_id))
-    
+
     dbs = rds.describe_db_instances()
-    
+
     endpoint = ""
     for i in range(0, len(dbs.get('DBInstances'))):
         if dbs.get('DBInstances')[i].get('DBInstanceIdentifier') == db_instance_id:
             endpoint = dbs.get('DBInstances')[i].get('Endpoint').get('Address')
             print('***** RDS instance Endpoint ready *****\n', endpoint)
-    
-    return endpoint
- 
 
-        
-        
+    return endpoint
+
+
+
+
 def connect(db_name, db_user, db_pass, db_endpoint):
     """
     Funcion que realiza la conexion a la base de datos que se especifico en la funcion anterior.
@@ -91,14 +90,14 @@ def connect(db_name, db_user, db_pass, db_endpoint):
                                     )
 #        print("***** This is the conexion *****\n", connection)
         return connection
-    
+
     except Exception as error:
         print ("***** Unable to connect to the database *****\n", error)
 
-        
-    
-    
-        
+
+
+
+
 def create_schemas(db_name, db_user, db_pass, db_endpoint):
     """
     Funcion que crea esquemas en la base de datos.
@@ -181,17 +180,19 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
         print('***** Tables created*****\n') 
     except Exception as error:
         print ("***** Unable to create tables *****\n", error)
-    
+
     cursor.close()
     connection.close()
     return exito
 
 
-    
 
 
 
-def bulkInsert(records, meta, db_name, db_user, db_pass, db_endpoint):
+def bulkInsertRAW(records, meta, db_name, db_user, db_pass, db_endpoint):
+    """
+    Inserta los registros y el metadata del esquema RAW
+    """
     try:
         connection = connect(db_name, db_user, db_pass, db_endpoint)
         cursor = connection.cursor()
@@ -223,7 +224,41 @@ def bulkInsert(records, meta, db_name, db_user, db_pass, db_endpoint):
         if (connection):
             cursor.close()
             connection.close()
-            print("***** PostgreSQL connection is closed *****")
+#            print("***** PostgreSQL connection is closed *****")
+
+
+
+
+
+
+def bulkInsertCLEANED(meta, db_name, db_user, db_pass, db_endpoint):
+    "Inserta el metadata del esquema CLEANED"
+    try:
+        connection = connect(db_name, db_user, db_pass, db_endpoint)
+        cursor = connection.cursor()
+
+        sql_insert_metadata = """ INSERT INTO cleaned.Metadatos (fecha_ejecucion,
+                                                                 ip_address,
+                                                                 usuario,
+                                                                 id_tarea,
+                                                                 estatus_tarea)
+
+                                  VALUES (%s, %s, %s, %s, %s); """
+
+        # executemany() to insert multiple rows rows
+        cursor.executemany(sql_insert_metadata, meta)
+        connection.commit()
+        print("***** {} Metadata record for CLEANED inserted successfully *****".format(cursor.rowcount))
+
+    except (Exception, psycopg2.Error) as error:
+        print("***** Failed inserting record into table: {} *****".format(error))
+
+    finally:
+        # closing database connection.
+        if (connection):
+            cursor.close()
+            connection.close()
+#            print("***** PostgreSQL connection is closed *****")
 
 
 
