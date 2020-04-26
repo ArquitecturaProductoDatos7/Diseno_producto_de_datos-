@@ -462,6 +462,92 @@ class ETLpipeline(luigi.Task):
 
 
 
+class CreaEsquemaProcesamiento(PostgresQuery):
+    "Crea el esquema Procesamiento dentro de la base"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "DROP SCHEMA IF EXISTS procesamiento cascade; CREATE SCHEMA procesamiento;"
+
+    def requires(self):
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
+
+    
+
+class CreaEsquemaModelo(PostgresQuery):
+    "Crea el esquema Modelo dentro de la base"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "DROP SCHEMA IF EXISTS modelo cascade; CREATE SCHEMA modelo;"
+
+    def requires(self):
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
+
+
+
+class CreaTablaModeloMetadatos(PostgresQuery):
+    "Crea la tabla de los metadatos dentro del esquema MODELO"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE modelo.Metadatos(mean_fit_time FLOAT,
+                                          std_fit_time FLOAT,
+                                          mean_score_time FLOAT,
+                                          std_score_time FLOAT,
+                                          param_max_depth INT,
+                                          param_max_features VARCHAR,
+                                          param_min_samples_leaf INT,
+                                          param_min_samples_split INT,
+                                          param_n_estimators INT,
+                                          params VARCHAR,
+                                          split0_test_score FLOAT,
+                                          split1_test_score FLOAT,
+                                          split2_test_score FLOAT,
+                                          split3_test_score FLOAT,
+                                          split4_test_score FLOAT,
+                                          mean_test_score FLOAT,
+                                          std_test_score FLOAT,
+                                          rank_test_score INT
+                                          ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+
+    
+    
 
 class FeaturingEngineering(luigi.Task):
     db_instance_id = 'db-dpa2021'
