@@ -1,6 +1,14 @@
 # config: utf8
 import boto3
 import psycopg2
+import pandas.io.sql as psql
+#import numpy as np
+#from sklearn.model_selection import train_test_split
+#import pandas as pd
+#from datetime import datetime
+#from sklearn.impute import SimpleImputer
+
+
 
 
 def create_db_instance(db_instance_id, db_name, db_user, db_pass, subnet_gp, security_gp):
@@ -189,7 +197,7 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
 
 
 
-def bulkInsertRAW(records, meta, db_name, db_user, db_pass, db_endpoint):
+def bulk_insert_raw(records, meta, db_name, db_user, db_pass, db_endpoint):
     """
     Inserta los registros y el metadata del esquema RAW
     """
@@ -231,7 +239,7 @@ def bulkInsertRAW(records, meta, db_name, db_user, db_pass, db_endpoint):
 
 
 
-def bulkInsertCLEANED(meta, db_name, db_user, db_pass, db_endpoint):
+def bulk_insert_cleaned(meta, db_name, db_user, db_pass, db_endpoint):
     "Inserta el metadata del esquema CLEANED"
     try:
         connection = connect(db_name, db_user, db_pass, db_endpoint)
@@ -241,9 +249,10 @@ def bulkInsertCLEANED(meta, db_name, db_user, db_pass, db_endpoint):
                                                                  ip_address,
                                                                  usuario,
                                                                  id_tarea,
-                                                                 estatus_tarea)
+                                                                 estatus_tarea,
+                                                                 registros_eliminados)
 
-                                  VALUES (%s, %s, %s, %s, %s); """
+                                  VALUES (%s, %s, %s, %s, %s, %s); """
 
         # executemany() to insert multiple rows rows
         cursor.executemany(sql_insert_metadata, meta)
@@ -263,3 +272,14 @@ def bulkInsertCLEANED(meta, db_name, db_user, db_pass, db_endpoint):
 
 
 
+
+def obtiene_df(db_name, db_user, db_pass, db_endpoint):
+    "Inserta el metadata del esquema CLEANED"
+    try:
+        connection = connect(db_name, db_user, db_pass, db_endpoint)
+        # cursor = connection.cursor()
+        dataframe = psql.read_sql("SELECT * FROM cleaned.incidentesviales LIMIT 500000;", connection)
+    except (Exception, psql.Error) as error:
+        print("***** Failed getting df: {} *****".format(error))
+
+    return dataframe
