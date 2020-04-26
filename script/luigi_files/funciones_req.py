@@ -88,7 +88,7 @@ def crea_rows_para_metadata (meta):
 
 
 
-def metadata_para_cleaned(task, status):
+def metadata_para_cleaned(task, status, elim):
     """
     Crea la metadata para el esquema cleaned
     """
@@ -100,7 +100,8 @@ def metadata_para_cleaned(task, status):
                 'ip_address': ip_address,
                 'usuario':  getpass.getuser(),
                 'task_id': task,
-                'task_status': status}
+                'task_status': status,
+                'registros_eliminados': elim}
 
     l = [json.dumps(metadata[campo]) for campo in metadata.keys()]
 
