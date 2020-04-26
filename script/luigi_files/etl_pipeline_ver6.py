@@ -196,7 +196,7 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
             #hacemos el requerimiento para un chunk del los registros
             [records, metadata] = funciones_req.peticion_api_info_mensual(self.data_url, self.meta_url, self.month, self.year)
-            funciones_rds.bulkInsertRAW([(json.dumps(records[i]['fields']) , ) for i in range(0, len(records))], [funciones_req.crea_rows_para_metadata(metadata)] , self.db_name, self.db_user_name, self.db_user_password, self.host)
+            funciones_rds.bulk_insert_raw([(json.dumps(records[i]['fields']) , ) for i in range(0, len(records))], [funciones_req.crea_rows_para_metadata(metadata)] , self.db_name, self.db_user_name, self.db_user_password, self.host)
 
         #Archivo para que Luigi sepa que ya realizo la tarea
         with self.output().open('w') as out:
@@ -247,7 +247,7 @@ class CreaTablaCleanedIncidentes(PostgresQuery):
 
     table = ""
     query = """
-            CREATE TABLE cleaned.IncidentesViales(hora_creacion VARCHAR,
+            CREATE TABLE cleaned.IncidentesViales(hora_creacion TIME,
                                                   delegacion_inicio VARCHAR,
                                                   dia_semana VARCHAR,
                                                   tipo_entrada VARCHAR,
@@ -255,6 +255,7 @@ class CreaTablaCleanedIncidentes(PostgresQuery):
                                                   latitud FLOAT,
                                                   longitud FLOAT,
                                                   ano INT,
+                                                  incidente_c4 VARCHAR,
                                                   codigo_cierre VARCHAR);
             """
 
@@ -285,7 +286,8 @@ class CreaTablaCleanedMetadatos(PostgresQuery):
                                            ip_address VARCHAR,
                                            usuario VARCHAR,
                                            id_tarea VARCHAR,
-                                           estatus_tarea VARCHAR); 
+                                           estatus_tarea VARCHAR,
+                                           registros_eliminados VARCHAR); 
             """
 
     def requires(self):
@@ -368,7 +370,7 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
     table = ""
     query = """
             INSERT INTO cleaned.IncidentesViales
-            SELECT registros->>'hora_creacion',
+            SELECT (registros->>'hora_creacion')::TIME,
                    remove_points(LOWER(registros->>'delegacion_inicio')),
                    unaccent(LOWER(registros->>'dia_semana')),
                    unaccent(LOWER(registros->>'tipo_entrada')),
@@ -376,8 +378,10 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
                    (registros->>'latitud')::float,
                    (registros->>'longitud')::float,
                    (registros->>'ano')::int,
+                   unaccent(remove_points(LOWER(registros->>'incidente_c4'))),
                    unaccent(remove_points(LOWER(registros->>'codigo_cierre')))
-            FROM raw.IncidentesVialesJson;
+            FROM raw.IncidentesVialesJson
+            WHERE registros->>'hora_creacion' LIKE '%\:%';
             """
 
     def requires(self):
@@ -410,9 +414,10 @@ class InsertaMetadatosCLEANED(luigi.Task):
     def run(self):
         task = self.task_id
         status = 'Success'
-        meta = funciones_req.metadata_para_cleaned(task, status)
+        eliminados = 'Deleted 649 rows'
+        meta = funciones_req.metadata_para_cleaned(task, status, eliminados)
         print(meta)
-        funciones_rds.bulkInsertCLEANED([meta], self.database, self.user, self.password, self.host)
+        funciones_rds.bulk_insert_cleaned([meta], self.database, self.user, self.password, self.host)
 
         #Archivo para que Luigi sepa que ya realizo la tarea
         with self.output().open('w') as out:
@@ -426,15 +431,15 @@ class InsertaMetadatosCLEANED(luigi.Task):
 
 
 class ETLpipeline(luigi.Task):
-    date = luigi.DateParameter(default=datetime.date.today())
-    db_instance_id = 'db-dpa20'
-    db_name = 'db_accidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
 
 
+    date = datetime.date.today()
     def requires(self):
         yield ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
                              self.db_user_password, self.subnet_group, self.security_group)
@@ -454,3 +459,36 @@ class ETLpipeline(luigi.Task):
 
     def output(self):
         return luigi.LocalTarget("5.ETL_Exitoso.txt")
+
+
+
+
+class FeaturingEngineering(luigi.Task):
+    db_instance_id = 'db-dpa2021'
+    db_name = 'db_accidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+
+    date = datetime.date.today()
+    def requires(self):
+       return ETLpipeline(self.db_instance_id , self.db_name, self.db_user_name,
+                          self.db_user_password, self.subnet_group, self.security_group)
+
+
+    def run(self):
+       host = funciones_rds.db_endpoint(self.db_instance_id)
+
+       df = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
+       print(df.head())
+
+       with self.output().open('w') as out_file:
+            out_file.write("Featuring Engineering exitoso, corrido el {}".format(self.date))
+
+
+    def output(self):
+        return luigi.LocalTarget("6.FE_Exitoso.txt")
+
+
+
