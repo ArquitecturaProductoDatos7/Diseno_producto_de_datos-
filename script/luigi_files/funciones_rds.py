@@ -2,6 +2,8 @@
 import boto3
 import psycopg2
 import pandas.io.sql as psql
+from sqlalchemy import create_engine
+import pandas as pd
 #import numpy as np
 #from sklearn.model_selection import train_test_split
 #import pandas as pd
@@ -276,10 +278,24 @@ def bulk_insert_cleaned(meta, db_name, db_user, db_pass, db_endpoint):
 def obtiene_df(db_name, db_user, db_pass, db_endpoint):
     "Inserta el metadata del esquema CLEANED"
     try:
-        connection = connect(db_name, db_user, db_pass, db_endpoint)
-        # cursor = connection.cursor()
-        dataframe = psql.read_sql("SELECT * FROM cleaned.incidentesviales LIMIT 500000;", connection)
-    except (Exception, psql.Error) as error:
+        #connection = connect(db_name, db_user, db_pass, db_endpoint)
+        #cursor = connection.cursor()
+        #dataframe = psql.read_sql("SELECT * FROM cleaned.incidentesviales LIMIT 500000;", connection)
+
+        engine_string = "postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}".format( 
+             user = db_user, 
+             password = db_pass,
+             host = db_endpoint,
+             port = "5432", 
+             database = db_name
+             )
+
+        #create sqlalchemy engine
+        engine = create_engine(engine_string)
+
+        #read a table from database
+        dataframe = pd.read_sql_table(table_name='incidentesviales', con=engine, schema='cleaned')
+    except (Exception) as error:
         print("***** Failed getting df: {} *****".format(error))
 
     return dataframe

@@ -12,7 +12,6 @@ import funciones_s3
 import funciones_req
 
 
-
 class CreaInstanciaRDS(luigi.Task):
     """ Crea la instancia en RDS cuando se tiene el Subnet Group"""
     #Prioridad de la tarea
@@ -30,7 +29,7 @@ class CreaInstanciaRDS(luigi.Task):
                                          self.db_user_password, self.subnet_group, self.security_group)
         if exito ==1:
             mins=8
-            for i in range(0,7):
+            for i in range(0,mins):
                 time.sleep(60)
                 print("***** Wait...{} min...*****".format(mins-i))
 
@@ -40,7 +39,7 @@ class CreaInstanciaRDS(luigi.Task):
             outfile.write(str(db_endpoint))
 
     def output(self):
-        return luigi.LocalTarget('1.CreaInstanciaRDS.txt')
+        return luigi.LocalTarget('1.ETL_CreaInstanciaRDS.txt')
 
 
 
@@ -65,7 +64,7 @@ class ObtieneRDSHost(luigi.Task):
              outfile.write("Endpoint ready")
 
     def output(self):
-        return luigi.LocalTarget("2.RDShost.txt")
+        return luigi.LocalTarget("2.ETL_RDShost.txt")
 
 
 
@@ -203,7 +202,7 @@ class ExtraeInfoPrimeraVez(luigi.Task):
             out.write('Archivo ' + str(self.year) + str(self.month) + '\n')
 
     def output(self):
-        return luigi.LocalTarget('3.InsertarDatos.txt')
+        return luigi.LocalTarget('3.ETL_InsertarDatos.txt')
 
 
 
@@ -424,7 +423,7 @@ class InsertaMetadatosCLEANED(luigi.Task):
             out.write('Metadatos de Cleaned insertados\n')
 
     def output(self):
-        return luigi.LocalTarget('4.LimpiaBase.txt')
+        return luigi.LocalTarget('4.ETL_LimpiaBase.txt')
 
 
 
@@ -462,119 +461,8 @@ class ETLpipeline(luigi.Task):
 
 
 
-class CreaEsquemaProcesamiento(PostgresQuery):
-    "Crea el esquema Procesamiento dentro de la base"
-    #Para la creacion de la base
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-    #Para conectarse a la base
-    host = luigi.Parameter()
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-
-    table = ""
-    query = "DROP SCHEMA IF EXISTS procesamiento cascade; CREATE SCHEMA procesamiento;"
-
-    def requires(self):
-        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
-                              self.password, self.subnet_group, self.security_group)
-
-    
-
-class CreaEsquemaModelo(PostgresQuery):
-    "Crea el esquema Modelo dentro de la base"
-    #Para la creacion de la base
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-    #Para conectarse a la base
-    host = luigi.Parameter()
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-
-    table = ""
-    query = "DROP SCHEMA IF EXISTS modelo cascade; CREATE SCHEMA modelo;"
-
-    def requires(self):
-        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
-                              self.password, self.subnet_group, self.security_group)
 
 
-
-class CreaTablaModeloMetadatos(PostgresQuery):
-    "Crea la tabla de los metadatos dentro del esquema MODELO"
-    #Para la creacion de la base
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-    #Para conectarse a la base
-    host = luigi.Parameter()
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-
-    table = ""
-    query = """
-            CREATE TABLE modelo.Metadatos(mean_fit_time FLOAT,
-                                          std_fit_time FLOAT,
-                                          mean_score_time FLOAT,
-                                          std_score_time FLOAT,
-                                          param_max_depth INT,
-                                          param_max_features VARCHAR,
-                                          param_min_samples_leaf INT,
-                                          param_min_samples_split INT,
-                                          param_n_estimators INT,
-                                          params VARCHAR,
-                                          split0_test_score FLOAT,
-                                          split1_test_score FLOAT,
-                                          split2_test_score FLOAT,
-                                          split3_test_score FLOAT,
-                                          split4_test_score FLOAT,
-                                          mean_test_score FLOAT,
-                                          std_test_score FLOAT,
-                                          rank_test_score INT
-                                          ); 
-            """
-
-    def requires(self):
-         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
-
-    
-    
-
-class FeaturingEngineering(luigi.Task):
-    db_instance_id = 'db-dpa2021'
-    db_name = 'db_accidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-
-    date = datetime.date.today()
-    def requires(self):
-       return ETLpipeline(self.db_instance_id , self.db_name, self.db_user_name,
-                          self.db_user_password, self.subnet_group, self.security_group)
-
-
-    def run(self):
-       host = funciones_rds.db_endpoint(self.db_instance_id)
-
-       df = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
-       print(df.head())
-
-       with self.output().open('w') as out_file:
-            out_file.write("Featuring Engineering exitoso, corrido el {}".format(self.date))
-
-
-    def output(self):
-        return luigi.LocalTarget("6.FE_Exitoso.txt")
 
 
 
