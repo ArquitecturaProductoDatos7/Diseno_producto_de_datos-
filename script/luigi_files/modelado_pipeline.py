@@ -10,7 +10,7 @@ import pandas as pd
 import funciones_rds
 import funciones_s3
 import funciones_req
-import funciones_pre
+import funciones_mod
 from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
 
 
@@ -176,7 +176,7 @@ class PreprocesoBase(luigi.Task):
        host = funciones_rds.db_endpoint(self.db_instance_id)
 
        dataframe = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
-       dataframe = funciones_pre.preprocesamiento_variable(dataframe)
+       dataframe = funciones_mod.preprocesamiento_variable(dataframe)
 
        #print("Df que vamos a guardar\n",dataframe.head())
 
@@ -236,7 +236,7 @@ class SeparaBase(luigi.Task):
             #print('Pude leer el csv\n' , dataframe.head(5))
              vars_modelo = ['hora_creacion','delegacion_inicio','dia_semana','tipo_entrada','mes','codigo_cierre', 'incidente_c4', 'target']
              var_target = 'target'
-             lista = funciones_pre.separa_train_y_test(dataframe, vars_modelo, var_target)
+             lista = funciones_mod.separa_train_y_test(dataframe, vars_modelo, var_target)
 
 
        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
@@ -294,10 +294,10 @@ class ImputacionesBase(luigi.Task):
     folder_path = 'base_separada'
     outfile = 'EXITO'
 
-#    def requires(self):
+#   def requires(self):
 #       return SeparaBase(self.db_instance_id, self.db_name, self.db_user_name,
-#                                                             self.db_user_password, self.subnet_group, self.security_group,
-#                                                             self.bucket, self.root_path)
+#                         self.db_user_password, self.subnet_group, self.security_group,
+#                         self.bucket, self.root_path)
 
 
     def run(self):
@@ -338,6 +338,8 @@ class ImputacionesBase(luigi.Task):
                              self.outfile
                             )
       return luigi.contrib.s3.S3Target(path=output_path)
+
+
 
 
 
