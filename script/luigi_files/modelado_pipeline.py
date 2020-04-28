@@ -12,6 +12,8 @@ import funciones_s3
 import funciones_req
 import funciones_mod
 from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
+import socket
+import getpass
 
 
 class CreaEsquemaProcesamiento(PostgresQuery):
@@ -291,6 +293,68 @@ class SeparaBase(luigi.Task):
                              self.outfile
                             )
        return luigi.contrib.s3.S3Target(path=output_path)
+    
+
+
+class InsertaMetadatosFeatuEngin(CopyToTable):
+    """
+    Esta funcion inserta los metadatos de Feature Engineering
+    """
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group =  luigi.Parameter()
+    host =  luigi.Parameter()
+    # Parametros del Bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    
+    pre_path = luigi.Parameter()
+    file_name = luigi.Parameter()
+    
+    
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    date_time = datetime.datetime.now()
+    task = 'InsertaMetadatosFeatuEngin'
+
+    fecha_de_ejecucion= date_time.strftime("%d/%m/%Y %H:%M:%S")
+    ip_address=ip_address
+    usuario=getpass.getuser()
+    task_id= task
+    task_status= 'Success'
+    columnas_generadas='incidente_c4_rec,hora,clave,target'
+    columnas_recategorizadas='incidente_c4'
+    columnas_imputadas='delegacion_inicio'
+    columnas_one_hote_encoder='delegacion_inicio,dia_semana,tipo_entrad$
+
+    table = "procesamiento.Metadatos"
+    
+    columns=[("fecha_de_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("task_id", "VARCHAR"),
+             ("task_status", "VARCHAR"),
+             ("columnas_generadas", "VARCHAR"),
+             ("columnas_recategorizadas", "VARCHAR"),
+             ("columnas_imputadas", "VARCHAR"),
+             ("columnas_one_hote_encoder", "VARCHAR")]
+    
+    def rows(self):
+        r=[(self.fecha_de_ejecucion,self.ip_address,self.usuario,self.task_id,self.task_status,
+            self.columnas_generadas,self.columnas_recategorizadas,self.columnas_imputadas,self.columnas_one_hote_encoder)]
+        return(r)
+
+    def requires(self):
+        # Indica que se debe hacer primero las tareas especificadas aqui
+        return  [CreaTablaFeatuEnginMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+                                             self.database, self.user, self.password),
+                 PreprocesoBase(self.db_instance_id, self.database, self.user, self.password,
+                                self.subnet_group, self.security_group, self.bucket, self.root_path, self.pre_path,
+                                self.file_name)]
 
 
 
