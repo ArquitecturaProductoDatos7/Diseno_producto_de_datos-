@@ -1,11 +1,12 @@
-#import psycopg2 as pg
-#import pandas.io.sql as psql
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn_pandas import CategoricalImputer
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+import pickle
 
 
 def preprocesamiento_variable(df):
@@ -58,16 +59,52 @@ def imputacion_variable_delegacion(X_train, X_test):
     X_test['delegacion_inicio']=delegacionInicio_imputer.transform(X) 
 
 
-    return X_test, X_train
+    return X_train, X_test
 
 
 
 
-def asigna_nombre_archivo(i):
-        switcher={
-                0:'X_train',
-                1:'X_test',
-                2:'y_train',
-                3:'y_test'
-                }
-        return switcher.get(i,"ERROR")
+def dummies_para_categoricas(X_train, X_test):
+    "Esta funcion convierte variables categoricas a dummies"
+
+    lista_vars_categoricas = X_train.select_dtypes(include = 'object').columns.values
+
+    train_vars_input = pd.get_dummies(X_train, columns = lista_vars_categoricas, prefix=lista_vars_categoricas)
+
+    test_vars_input = pd.get_dummies(X_test, columns = lista_vars_categoricas, prefix=lista_vars_categoricas)
+
+    return train_vars_input, test_vars_input
+
+
+
+
+
+def magic_loop(X_train,y_train, hyper_params_grid):
+    """
+       Esta funcion ajusta varios modelos con diferentes hiperparametros y regresa:
+             - la informacion de todos lod modelos, rankeados segun la metrica elegida
+             - el nombre del pickle donde se guarda el *mejor* modelo ya entrenado
+    """
+    #Convertimos de column vector a 1d array
+    y_train = y_train.values.ravel()
+
+    classifier = RandomForestClassifier()
+
+    grid_search = GridSearchCV(classifier,
+                               hyper_params_grid,
+                               scoring = 'precision',
+                               #scoring = 'recall'
+                               cv = 10, 
+                               n_jobs = -1)
+                               #verbose = 3)
+
+    grid_search.fit(X_train, y_train)
+
+    #pickle
+#    filename = 'finalized_model.pkl'
+#    pickle.dump(grid_search, open(filename, 'wb'))
+
+    cv_results = pd.DataFrame(grid_search.cv_results_)
+    results = cv_results.sort_values(by='rank_test_score', ascending=True)
+
+    return results, grid_search

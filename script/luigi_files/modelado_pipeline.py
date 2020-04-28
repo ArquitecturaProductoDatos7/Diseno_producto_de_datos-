@@ -1,19 +1,17 @@
 # config: utf8
-import json, os, datetime, boto3, luigi, time
+import json, os, datetime, boto3, luigi, time, pickle
 import luigi.contrib.s3
 from luigi.contrib.postgres import CopyToTable, PostgresQuery
 #from luigi.contrib import rdbms
 #from luigi import task
 import pandas as pd
-#from numpy import ndarray as np
-#import getpass
+import socket
+import getpass
 import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
 from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
-import socket
-import getpass
 
 
 class CreaEsquemaProcesamiento(PostgresQuery):
@@ -59,6 +57,8 @@ class CreaEsquemaModelo(PostgresQuery):
                               self.password, self.subnet_group, self.security_group)
 
 
+
+
 class CreaTablaFeatuEnginMetadatos(PostgresQuery):
     "Crea la tabla de los metadatos dentro del esquema PROCESAMIENTO"
     #Para la creacion de la base
@@ -89,6 +89,8 @@ class CreaTablaFeatuEnginMetadatos(PostgresQuery):
     def requires(self):
          return CreaEsquemaProcesamiento(self.db_instance_id, self.subnet_group, self.security_group,
                                    self.host, self.database, self.user, self.password)
+
+
 
 
 
@@ -139,6 +141,7 @@ class CreaTablaModeloMetadatos(PostgresQuery):
 class CreaBucket(luigi.Task):
     """ Esta tarea crea el S3 en AWS """
     priority = 100
+
     # Nombre del bucket
     bucket = luigi.Parameter()
 
@@ -156,30 +159,7 @@ class CreaBucket(luigi.Task):
             outfile.write(str(self.bucket))
 
     def output(self):
-        return luigi.LocalTarget('1.MODEL_CreaBucket.txt')
-
-
-
-
-
-class ObtieneRutaBucket(luigi.Task):
-    "Obtiene la ruta del bucket para vrificar su creacion"
-
-    bucket = luigi.Parameter()
-
-    def requires(self):
-        return CreaBucket(self.bucket)
-
-    def run(self):
-        #Lee el endpoint del archivo
-        with self.input().open() as infile, self.output().open('w') as outfile:
-             bucket_name = infile.read()
-             if self.bucket == bucket_name:
-                  print("***** Bucket {} ready *****".format(self.bucket))
-                  outfile.write(str(self.bucket))
-
-    def output(self):
-        return luigi.LocalTarget("2.MODEL_BucketListo.txt")
+        return luigi.LocalTarget('1.MODELADO_CreaBucket.txt')
 
 
 
@@ -197,13 +177,15 @@ class PreprocesoBase(luigi.Task):
     # Parametros del Bucket
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
-    pre_path = luigi.Parameter()
-    file_name = luigi.Parameter()
+
+
+    pre_path = '1.preprocesamiento'
+    file_name = 'base_procesada'
 
     def requires(self):
        return [ETLpipeline(self.db_instance_id , self.db_name, self.db_user_name,
                           self.db_user_password, self.subnet_group, self.security_group),
-               ObtieneRutaBucket(self.bucket)]
+               CreaBucket(self.bucket)]
 
     def run(self):
        host = funciones_rds.db_endpoint(self.db_instance_id)
@@ -219,7 +201,7 @@ class PreprocesoBase(luigi.Task):
 
        with self.output().open('w') as out_file:
             dataframe.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
-            out_file.close()
+
 
     def output(self):
        output_path = "s3://{}/{}/{}/{}.csv".\
@@ -249,17 +231,13 @@ class SeparaBase(luigi.Task):
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
 
-    #Para la tarea de Preproceso
-    pre_path = 'preprocesamiento'
-    file_name = 'base_preparada'
     #Para la tarea actual
-    folder_path = 'base_separada'
-    outfile = ''
+    folder_path = '2.separacion_base'
 
     def requires(self):
         return PreprocesoBase(self.db_instance_id, self.db_name, self.db_user_name,
-                             self.db_user_password, self.subnet_group, self.security_group,
-                             self.bucket, self.root_path, self.pre_path, self.file_name)
+                              self.db_user_password, self.subnet_group, self.security_group,
+                              self.bucket, self.root_path)
 
 
     def run(self):
@@ -267,33 +245,175 @@ class SeparaBase(luigi.Task):
        with self.input().open('r') as infile:
              dataframe = pd.read_csv(infile, sep="\t")
             #print('Pude leer el csv\n' , dataframe.head(5))
-             vars_modelo = ['hora_creacion','delegacion_inicio','dia_semana','tipo_entrada','mes','codigo_cierre', 'incidente_c4', 'target']
+             vars_modelo = ['delegacion_inicio','mes','dia_semana','hora', 'tipo_entrada', 'incidente_c4_rec', 'target']
              var_target = 'target'
-             lista = funciones_mod.separa_train_y_test(dataframe, vars_modelo, var_target)
+             [X_train, X_test, y_train, y_test] = funciones_mod.separa_train_y_test(dataframe, vars_modelo, var_target)
 
 
        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
        s3_resource = ses.resource('s3')
        obj = s3_resource.Bucket(self.bucket)
 
-       lista_names = ['X_train', 'X_test', 'y_train', 'y_test']
-       for i in range(0,4):
-             self.outfile = str(lista_names[i])
-             with self.output().open('w') as self.outfile:
-                 df = pd.DataFrame(lista[i])
-                 #print(df.head(5))
-                 df.to_csv(self.outfile, sep='\t', encoding='utf-8', index=None)
-                 self.outfile.close()
+       with self.output()['X_train'].open('w') as outfile1:
+            X_train.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+
+       with self.output()['X_test'].open('w') as outfile2:
+           X_test.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
+
+       with self.output()['y_train'].open('w') as outfile3:
+           y_train.to_csv(outfile3, sep='\t', encoding='utf-8', index=None)
+
+       with self.output()['y_test'].open('w') as outfile4:
+           y_test.to_csv(outfile4, sep='\t', encoding='utf-8', index=None)
+
 
     def output(self):
-       output_path = "s3://{}/{}/{}/{}.csv".\
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                            )
+       return {'X_train':luigi.contrib.s3.S3Target(path=output_path+'X_train.csv'),
+               'X_test':luigi.contrib.s3.S3Target(path=output_path+'X_test.csv'),
+               'y_train':luigi.contrib.s3.S3Target(path=output_path+'y_train.csv'),
+               'y_test':luigi.contrib.s3.S3Target(path=output_path+'y_test.csv'),
+               }
+
+
+
+
+
+
+class ImputacionesBase(luigi.Task):
+    "Esta tarea hace la imputacion de la base en la Train & Test"
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Parametros del Bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+    #Para la tarea actual
+    folder_path = '3.Imputaciones'
+
+    def requires(self):
+
+       return {'infiles': SeparaBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                     self.db_user_password, self.subnet_group, self.security_group,
+                                     self.bucket, self.root_path)}
+
+
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['X_train'].open('r') as infile1:
+             X_train = pd.read_csv(infile1, sep="\t")
+       with self.input()['infiles']['X_test'].open('r') as infile2:
+             X_test = pd.read_csv(infile2, sep="\t")
+       with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+       with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+
+       #Se realizan las imputaciones
+       [X_train, X_test] = funciones_mod.imputacion_variable_delegacion(X_train, X_test)
+
+       #Se guardan los archivos
+       with self.output()['X_train'].open('w') as outfile1:
+            X_train.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+       with self.output()['X_test'].open('w') as outfile2:
+           X_test.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
+       with self.output()['y_train'].open('w') as outfile3:
+           y_train.to_csv(outfile3, sep='\t', encoding='utf-8', index=None)
+       with self.output()['y_test'].open('w') as outfile4:
+           y_test.to_csv(outfile4, sep='\t', encoding='utf-8', index=None)
+
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
                       format(self.bucket,
                              self.root_path,
                              self.folder_path,
-                             self.outfile
                             )
-       return luigi.contrib.s3.S3Target(path=output_path)
-    
+       return {'X_train':luigi.contrib.s3.S3Target(path=output_path+'X_train.csv'),
+               'X_test':luigi.contrib.s3.S3Target(path=output_path+'X_test.csv'),
+               'y_train':luigi.contrib.s3.S3Target(path=output_path+'y_train.csv'),
+               'y_test':luigi.contrib.s3.S3Target(path=output_path+'y_test.csv'),
+               }
+
+
+
+
+
+
+class DummiesBase(luigi.Task):
+    "Esta tarea convierte las variables categoricas a dummies (One-hot encoder) para la base Train & Test"
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Parametros del Bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+    #Para la tarea actual
+    folder_path = '4.input_modelo'
+
+    def requires(self):
+
+       return {'infiles': ImputacionesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                           self.db_user_password, self.subnet_group, self.security_group,
+                                           self.bucket, self.root_path)}
+
+
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['X_train'].open('r') as infile1:
+             X_train = pd.read_csv(infile1, sep="\t")
+       with self.input()['infiles']['X_test'].open('r') as infile2:
+             X_test = pd.read_csv(infile2, sep="\t")
+       with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+       with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+
+       #Se hace el one-hot encoder y se obtiene la base lista para el modelo
+       [X_train_input, X_test_input] = funciones_mod.dummies_para_categoricas(X_train, X_test)
+
+       #Se guardan los archivos
+       with self.output()['X_train'].open('w') as outfile1:
+            X_train_input.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+       with self.output()['X_test'].open('w') as outfile2:
+           X_test_input.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
+       with self.output()['y_train'].open('w') as outfile3:
+           y_train.to_csv(outfile3, sep='\t', encoding='utf-8', index=None)
+       with self.output()['y_test'].open('w') as outfile4:
+           y_test.to_csv(outfile4, sep='\t', encoding='utf-8', index=None)
+
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+       return {'X_train':luigi.contrib.s3.S3Target(path=output_path+'X_train_input.csv'),
+               'X_test':luigi.contrib.s3.S3Target(path=output_path+'X_test_input.csv'),
+               'y_train':luigi.contrib.s3.S3Target(path=output_path+'y_train.csv'),
+               'y_test':luigi.contrib.s3.S3Target(path=output_path+'y_test.csv'),
+               }
+
+
 
 
 class InsertaMetadatosFeatuEngin(CopyToTable):
@@ -311,28 +431,24 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
     # Parametros del Bucket
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
-    
-    pre_path = luigi.Parameter()
-    file_name = luigi.Parameter()
-    
-    
+
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     date_time = datetime.datetime.now()
     task = 'InsertaMetadatosFeatuEngin'
 
-    fecha_de_ejecucion= date_time.strftime("%d/%m/%Y %H:%M:%S")
-    ip_address=ip_address
-    usuario=getpass.getuser()
-    task_id= task
-    task_status= 'Success'
-    columnas_generadas='incidente_c4_rec,hora,clave,target'
-    columnas_recategorizadas='incidente_c4'
-    columnas_imputadas='delegacion_inicio'
-    columnas_one_hote_encoder='delegacion_inicio,dia_semana,tipo_entrad$
+    fecha_de_ejecucion = date_time.strftime("%d/%m/%Y %H:%M:%S")
+    ip_address = ip_address
+    usuario = getpass.getuser()
+    task_id = task
+    task_status = 'Success'
+    columnas_generadas ='incidente_c4_rec,hora,clave,target'
+    columnas_recategorizadas ='incidente_c4'
+    columnas_imputadas ='delegacion_inicio'
+    columnas_one_hot_encoder ='delegacion_inicio,dia_semana,tipo_entrada'
 
     table = "procesamiento.Metadatos"
-    
+
     columns=[("fecha_de_ejecucion", "VARCHAR"),
              ("ip_address", "VARCHAR"),
              ("usuario", "VARCHAR"),
@@ -342,26 +458,33 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
              ("columnas_recategorizadas", "VARCHAR"),
              ("columnas_imputadas", "VARCHAR"),
              ("columnas_one_hote_encoder", "VARCHAR")]
-    
+
     def rows(self):
         r=[(self.fecha_de_ejecucion,self.ip_address,self.usuario,self.task_id,self.task_status,
-            self.columnas_generadas,self.columnas_recategorizadas,self.columnas_imputadas,self.columnas_one_hote_encoder)]
+            self.columnas_generadas,self.columnas_recategorizadas,self.columnas_imputadas,self.columnas_one_hot_encoder)]
         return(r)
 
     def requires(self):
         # Indica que se debe hacer primero las tareas especificadas aqui
         return  [CreaTablaFeatuEnginMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
-                                             self.database, self.user, self.password),
-                 PreprocesoBase(self.db_instance_id, self.database, self.user, self.password,
-                                self.subnet_group, self.security_group, self.bucket, self.root_path, self.pre_path,
-                                self.file_name)]
+                                              self.database, self.user, self.password),
+                 DummiesBase(self.db_instance_id, self.database, self.user,
+                             self.password, self.subnet_group, self.security_group,
+                             self.bucket, self.root_path)]
 
 
 
 
 
-class ImputacionesBase(luigi.Task):
-    "Esta tarea hace la imputacion de la base en la Train & Test"
+class SeleccionaModelo(luigi.Task):
+    "Esta tarea convierte las variables categoricas a dummies (One-hot encoder) para la base Train & Test"
+
+    #Parametros para el modelo
+    n_estimators = luigi.Parameter()
+    max_depth = luigi.Parameter()
+    max_features = luigi.Parameter()
+    min_samples_split = luigi.Parameter()
+    min_samples_leaf = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -374,70 +497,102 @@ class ImputacionesBase(luigi.Task):
     bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
     root_path = 'bucket_incidentes_cdmx'
 
+    #Folder para guardar la tarea actual en el s3
+    folder_path = '5.modelo'
+
+    def requires(self):
+
+       return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                      self.db_user_password, self.subnet_group, self.security_group,
+                                      self.bucket, self.root_path)}
+
+
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['X_train'].open('r') as infile1:
+             X_train_input = pd.read_csv(infile1, sep="\t")
+       with self.input()['infiles']['X_test'].open('r') as infile2:
+             X_test_input = pd.read_csv(infile2, sep="\t")
+       with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+       with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+
+       #Grid de hiper-parametros para el modelo
+       hyper_params_grid= {'n_estimators': self.n_estimators,
+                          'max_depth': self.max_depth,
+                          'max_features': self.max_features,
+                          'min_samples_split': self.min_samples_split,
+                          'min_samples_leaf': self.min_samples_leaf}
+
+       print('***** Comienza a calcular el modelo *****')
+       #Se corre el modelo
+       [metadata, grid_search] = funciones_mod.magic_loop(X_train_input, y_train, hyper_params_grid)
+
+
+       #Se guardan los archivos
+       with self.output()['metadata'].open('w') as outfile1:
+           metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+       with self.output()['modelo'].open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo_f', 'wb'))
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+       return {'metadata':luigi.contrib.s3.S3Target(path=output_path+'metadata.csv'),
+               'modelo':luigi.contrib.s3.S3Target(path=output_path+'modelo_final.pkl')
+               }
+
+
+
+
+
+
+class ModeladoPipeline(luigi.Task):
+    "Esta clase hace llama a las tareas relacionadas del modelado"
+
+    #Parametros para el modelo
+    n_estimators = [5]
+    max_depth = [50]
+    max_features = ['sqrt']
+    min_samples_split = [50]
+    min_samples_leaf = [20]
+
+
     # Parametros del RDS
-#    db_instance_id = luigi.Parameter()
-#    db_name = luigi.Parameter()
-#    db_user_name = luigi.Parameter()
-#    db_user_password = luigi.Parameter()
-#    subnet_group = luigi.Parameter()
-#    security_group = luigi.Parameter()
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
     # Parametros del Bucket
-#    bucket = luigi.Parameter()
-#    root_path = luigi.Parameter()
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
 
-    #Para la tarea actual
-    folder_path = 'base_separada'
-    outfile = 'EXITO'
 
-#   def requires(self):
-#       return SeparaBase(self.db_instance_id, self.db_name, self.db_user_name,
-#                         self.db_user_password, self.subnet_group, self.security_group,
-#                         self.bucket, self.root_path)
+    def requires(self):
+         yield CreaBucket(self.bucket)
+
+         host = funciones_rds.db_endpoint(self.db_instance_id)
+         yield InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
+                                          self.db_user_password, self.subnet_group, self.security_group,
+                                          host, self.bucket, self.root_path)
+         yield CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group,
+                                        host, self.db_name, self.db_user_name, self.db_user_password)
+
+         yield SeleccionaModelo(self.n_estimators, self.max_depth, self.max_features, 
+                                self.min_samples_split, self.min_samples_leaf)
+
 
 
     def run(self):
 
-      ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
-#      s3_resource = ses.resource('s3')
-      client = boto3.client('s3', region_name='us-east-1')
- 
-      # These define the bucket and object to read
-      file_to_read = 'bucket_incidentes_cdmx/base_separada/X_test.csv' 
-
-      #create a file object using the bucket and object key. 
-      fileobj = client.get_object(Bucket=self.bucket, Key=file_to_read) 
-      # open the file object and read it into the variable filedata. 
-      #filedata = fileobj['Body'].read()
-      dataframe = pd.read_csv(fileobj['Body'], sep="\t")
-      print(dataframe.head(5))
-      print(type(dataframe))
-      print(dataframe.columns)
-      # file data will be a binary stream. We have to decode it 
-      #contents = filedata.decode('utf-8') 
-
-      # Once decoded, you can treat the file as plain text if appropriate 
-      #print(contents) 
-       
-
-
-      with self.output().open('w') as self.outfile:
-            self.outfile.write("hola")
-
-
+         with self.output().open('w') as outfile:
+            outfile.write(str(self.bucket))
 
     def output(self):
-      output_path = "s3://{}/{}/{}/{}.csv".\
-                      format(self.bucket,
-                             self.root_path,
-                             self.folder_path,
-                             self.outfile
-                            )
-      return luigi.contrib.s3.S3Target(path=output_path)
-
-
-
-
-
-
-
-
+         return luigi.LocalTarget('2.MODELADO_Exitoso.txt')
