@@ -57,6 +57,37 @@ class CreaEsquemaModelo(PostgresQuery):
                               self.password, self.subnet_group, self.security_group)
 
 
+class CreaTablaFeatuEnginMetadatos(PostgresQuery):
+    "Crea la tabla de los metadatos dentro del esquema PROCESAMIENTO"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE procesamiento.Metadatos(fecha_de_ejecucion VARCHAR,
+                                          ip_address VARCHAR,
+                                          usuario VARCHAR,
+                                          task_id VARCHAR,
+                                          task_status VARCHAR,
+                                          columnas_generadas VARCHAR,
+                                          columnas_recategorizadas VARCHAR,
+                                          columnas_imputadas VARCHAR,
+                                          columnas_one_hote_encoder VARCHAR
+                                          ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaProcesamiento(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+
 
 
 class CreaTablaModeloMetadatos(PostgresQuery):
