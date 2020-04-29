@@ -109,24 +109,29 @@ class CreaTablaModeloMetadatos(PostgresQuery):
 
     table = ""
     query = """
-            CREATE TABLE modelo.Metadatos(mean_fit_time FLOAT,
-                                          std_fit_time FLOAT,
-                                          mean_score_time FLOAT,
-                                          std_score_time FLOAT,
-                                          param_max_depth INT,
+            CREATE TABLE modelo.Metadatos(mean_fit_time VARCHAR,
+                                          std_fit_time VARCHAR,
+                                          mean_score_time VARCHAR,
+                                          std_score_time VARCHAR,
+                                          param_max_depth VARCHAR,
                                           param_max_features VARCHAR,
-                                          param_min_samples_leaf INT,
-                                          param_min_samples_split INT,
-                                          param_n_estimators INT,
+                                          param_min_samples_leaf VARCHAR,
+                                          param_min_samples_split VARCHAR,
+                                          param_n_estimators VARCHAR,
                                           params VARCHAR,
-                                          split0_test_score FLOAT,
-                                          split1_test_score FLOAT,
-                                          split2_test_score FLOAT,
-                                          split3_test_score FLOAT,
-                                          split4_test_score FLOAT,
-                                          mean_test_score FLOAT,
-                                          std_test_score FLOAT,
-                                          rank_test_score INT
+                                          split0_test_score VARCHAR,
+                                          split1_test_score VARCHAR,
+                                          split2_test_score VARCHAR,
+                                          split3_test_score VARCHAR,
+                                          split4_test_score VARCHAR,
+                                          split5_test_score VARCHAR,
+                                          split6_test_score VARCHAR,
+                                          split7_test_score VARCHAR,
+                                          split8_test_score VARCHAR,
+                                          split9_test_score VARCHAR,
+                                          mean_test_score VARCHAR,
+                                          std_test_score VARCHAR,
+                                          rank_test_score VARCHAR
                                           ); 
             """
 
@@ -432,6 +437,7 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
 
+    #Data 
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     date_time = datetime.datetime.now()
@@ -480,11 +486,11 @@ class SeleccionaModelo(luigi.Task):
     "Esta tarea convierte las variables categoricas a dummies (One-hot encoder) para la base Train & Test"
 
     #Parametros para el modelo
-    n_estimators = luigi.Parameter()
-    max_depth = luigi.Parameter()
+    n_estimators = luigi.IntParameter()
+    max_depth = luigi.IntParameter()
     max_features = luigi.Parameter()
-    min_samples_split = luigi.Parameter()
-    min_samples_leaf = luigi.Parameter()
+    min_samples_split = luigi.IntParameter()
+    min_samples_leaf = luigi.IntParameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -499,6 +505,8 @@ class SeleccionaModelo(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
+
+    fname = "_n_estimators_" + str(n_estimators) + "_max_depth_" + str(max_depth) + "_max_features_" + str(max_features) + "_min_samples_split_" + str(min_samples_split) + "_min_samples_leaf_" + str(min_samples_leaf)
 
     def requires(self):
 
@@ -519,11 +527,11 @@ class SeleccionaModelo(luigi.Task):
              y_test = pd.read_csv(infile4, sep="\t")
 
        #Grid de hiper-parametros para el modelo
-       hyper_params_grid= {'n_estimators': self.n_estimators,
-                          'max_depth': self.max_depth,
-                          'max_features': self.max_features,
-                          'min_samples_split': self.min_samples_split,
-                          'min_samples_leaf': self.min_samples_leaf}
+       hyper_params_grid= {'n_estimators': [self.n_estimators],
+                          'max_depth': [self.max_depth],
+                          'max_features': [self.max_features],
+                          'min_samples_split': [self.min_samples_split],
+                          'min_samples_leaf': [self.min_samples_leaf]}
 
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
@@ -531,10 +539,14 @@ class SeleccionaModelo(luigi.Task):
 
 
        #Se guardan los archivos
-       with self.output()['metadata'].open('w') as outfile1:
-           metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
-       with self.output()['modelo'].open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo_f', 'wb'))
+       with self.output().open('w') as outfile1:
+           metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
+
+       with self.output().open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo_final.pkl', 'wb'))
+
+       funciones_s3.upload_file('modelo_final.pkl', self.bucket, object_name=None)
+
 
     def output(self):
        output_path = "s3://{}/{}/{}/".\
@@ -542,57 +554,74 @@ class SeleccionaModelo(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
-       return {'metadata':luigi.contrib.s3.S3Target(path=output_path+'metadata.csv'),
-               'modelo':luigi.contrib.s3.S3Target(path=output_path+'modelo_final.pkl')
-               }
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+self.fname+'.csv')
 
 
 
 
 
 
-class ModeladoPipeline(luigi.Task):
-    "Esta clase hace llama a las tareas relacionadas del modelado"
 
-    #Parametros para el modelo
-    n_estimators = [5]
-    max_depth = [50]
-    max_features = ['sqrt']
-    min_samples_split = [50]
-    min_samples_leaf = [20]
-
+class InsertaMetadatosModelo(CopyToTable):
+    "Esta tarea guarda los metadatos del modelo a la RDS"
+    #Parametros del modelo
+    n_estimators = luigi.IntParameter()
+    max_depth = luigi.IntParameter()
+    max_features = luigi.Parameter()
+    min_samples_split = luigi.IntParameter()
+    min_samples_leaf = luigi.IntParameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
-    db_name = 'db_incidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
     subnet_group = 'subnet_gp_dpa20'
     security_group = 'sg-09b7d6fd6a0daf19a'
-    # Parametros del Bucket
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+   # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
+
+    # Nombre de la tabla a insertar
+    table = 'modelo.Metadatos'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("mean_fit_time", "VARCHAR"),
+             ("std_fit_time", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),
+             ("std_score_time", "VARCHAR"),
+             ("param_max_depth", "VARCHAR"),
+             ("param_max_features", "VARCHAR"),
+             ("param_min_samples_leaf", "VARCHAR"),
+             ("param_min_samples_split", "VARCHAR"),
+             ("param_n_estimators", "VARCHAR"),
+             ("params", "VARCHAR"),
+             ("split0_test_score", "VARCHAR"),
+             ("split1_test_score", "VARCHAR"),
+             ("split2_test_score", "VARCHAR"),
+             ("split3_test_score", "VARCHAR"),
+             ("split4_test_score", "VARCHAR"),
+             ("split5_test_score", "VARCHAR"),
+             ("split6_test_score", "VARCHAR"),
+             ("split7_test_score", "VARCHAR"),
+             ("split8_test_score", "VARCHAR"),
+             ("split9_test_score", "VARCHAR"),
+             ("mean_test_score", "VARCHAR"),
+             ("std_test_score", "VARCHAR"),
+             ("rank_test_score", "INT")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()['infile2'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
 
 
     def requires(self):
-         yield CreaBucket(self.bucket)
-
-         host = funciones_rds.db_endpoint(self.db_instance_id)
-         yield InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
-                                          self.db_user_password, self.subnet_group, self.security_group,
-                                          host, self.bucket, self.root_path)
-         yield CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group,
-                                        host, self.db_name, self.db_user_name, self.db_user_password)
-
-         yield SeleccionaModelo(self.n_estimators, self.max_depth, self.max_features, 
-                                self.min_samples_split, self.min_samples_leaf)
+        return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+                                          self.database, self.user, self.password),
+                 'infile2' : SeleccionaModelo(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, 
+                                            self.min_samples_leaf)}
 
 
 
-    def run(self):
-
-         with self.output().open('w') as outfile:
-            outfile.write(str(self.bucket))
-
-    def output(self):
-         return luigi.LocalTarget('2.MODELADO_Exitoso.txt')

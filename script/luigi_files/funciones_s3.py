@@ -81,3 +81,42 @@ def abre_file_como_df(bucket_name, file_to_read):
      df = pd.read_csv(fileobj['Body'], sep="\t")
 
      return df
+
+
+
+def upload_pickle_s3(bucket, pkl_file):
+
+      key=pkl_file
+
+      ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+      s3_resource = boto3.resource('s3')
+      
+      s3_resource.Object(bucket,key)
+
+
+
+
+
+def upload_file(file_name, bucket, object_name=None):
+    """Upload a file to an S3 bucket
+
+    :param file_name: File to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified then file_name is used
+    :return: True if file was uploaded, else False
+    """
+
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = file_name
+
+    # Upload the file
+
+    ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+    s3_client = boto3.client('s3', region_name='us-east-1')
+    try:
+        response = s3_client.upload_file(file_name, bucket, object_name)
+    except ClientError as e:
+        logging.error(e)
+        return False
+    return True
