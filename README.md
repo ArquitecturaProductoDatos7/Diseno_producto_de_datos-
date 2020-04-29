@@ -58,16 +58,17 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 * 15) **CreaEsquemaProcesamiento** - se crea el esquema *Procesamiento* para el modelado y tiene como requerimiento que se obtenga el host de la base de datos.<br>
 * 16) **CreaEsquemaModelo** - crea el esquema  del *Modelo* y también tiene como requerimiento obtener el el host de la base de datos.<br>
 * 17) **CreaTablaModeloMetadatos**- crea la tabla de los metadatos en del esquema *Modelo* y require que ya este el esquema creado.<br>
-* 18) **SeleccionaModelo** - En esta tarea se hace el *grid search* de los modelos para elegir el mejor modelo, y tiene como requerimiento la tarea de que la variables tenga el formato *One-hot encoder*. De igual manera sube el archivo *.pkl* a un bucket con los parámetros de la selección del modelo.<br>
+* 18) **SeleccionaModelo** - En esta tarea se hace el *grid search* de los modelos para elegir el mejor modelo, y tiene como requerimiento la tarea de que la variables tenga el formato *One-hot encoder*. De igual manera sube el archivo *.pkl* a un bucket con los parámetros de la selección del modelo. Hasta el momento se ha realizado únicamente un modelo de *RandomForest<br>
 * 19) **DummiesBase** - Aqui luigi convierte las variables categoricas a dummies (One-hot encoder) para la base "Train & Test" y tiene como requerimiento que las variables que lo requiren hayan sido imputadas.<br>
 * 20) **ImputacionesBase**- en este punto se hace la imputacion de la base en la "Train & Test" con el requeriiento de que la base haya sido anteriorme separada en entrenamiento y validación.<br>
 * 21) **SeparaBase** - Separa la base en la "Train & Test" y requiere que la tarea del preproceso de la base ya haya sido realizada.<br>
 * 22) **PreprocesoBase** - Realiza el preprocesamiento de la base y require que el bucket donde se almacenará ya este creado.<br>
 * 23) **CreaBucket** - Con esta tarea se crea un bucket en luigi para alancenar el prepocesamiento, y no tiene requerimientos.<br>
-* 24) **InsertaMetadatosModelo** - Con esta última tarea se leen el data frame de la metadata generada por el Modelo, y se inserta la tabla de *modelo.Metadatos*, requiere que la el esquema de los metadatos del modelo ya este creado y que se realice la tarea de *SeleccionaModelo*.<br>
+* 24) **InsertaMetadatosModelo** - Con esta última tarea se leen el data frame de la metadata generada por el Modelo, y se inserta la tabla de *modelo.Metadatos*, requiere que la el esquema de los metadatos del modelo ya este creado y que se realice la tarea de *SeleccionaModelo*.<br> <hr> 
 
 ####  DAG
 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
 
 ### 3. Implicaciones éticas
 
@@ -79,7 +80,7 @@ En segundo lugar, para la implementación del modelo consideramos que si existen
 - Una asignación ineficiente de los recursos del C5 generaría que el recurso se enviara a otro destino y podría incurrir incluso en alguna pérdida humana.
 - Se haga una limpieza incorrecta de las variables para el desarrollo del modelo que afecte los resultados generados.
 
-### 4. Métrica del modelo
+### 4. Métrica del modelado
 
 En la evaluación del modelo nos enfocaremos en la métrica **"Precision"** para monitorear cuantos incidentes de los que nos arrojo el modelo como *verdaderos* realmente fueron *verdaderos*, esto con la idea de que el producto de datos será proporcionado al C5 con el objetivo de poder asignar mejor sus recursos, por lo que en esta métrica se pueden justamente controlar los *falsos positivos*. Cabe mencionar que la métrica de *Recall*, también puede ser utilizada si lo que se busca es tratar de controlar los *falsos negativos*, es decir mas enfocado en atender a todos los incidentes *verdaderos*. Nuestra métrica tiene fuertes implicaciones éticas como las que se mencionar en el punto anterior, pero justamente depende de cada perspectiva y nosotros nos enfocamos en optimizar los recursos limitados del C5.
 
