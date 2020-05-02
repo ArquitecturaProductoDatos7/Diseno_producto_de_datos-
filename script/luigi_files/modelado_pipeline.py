@@ -506,7 +506,6 @@ class SeleccionaModelo(luigi.Task):
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
 
-    fname = "_n_estimators_" + str(n_estimators) + "_max_depth_" + str(max_depth) + "_max_features_" + str(max_features) + "_min_samples_split_" + str(min_samples_split) + "_min_samples_leaf_" + str(min_samples_leaf)
 
     def requires(self):
 
@@ -541,11 +540,13 @@ class SeleccionaModelo(luigi.Task):
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
-
+      
+       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
        with self.output().open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo_final.pkl', 'wb'))
+           pickle.dump(grid_search,open('modelo'+fname+'.pkl', 'wb'))
+       
 
-       funciones_s3.upload_file('modelo_final.pkl', self.bucket, object_name=None)
+       funciones_s3.upload_file('modelo'+fname+'.pkl', self.bucket, object_name=None)
 
 
     def output(self):
@@ -554,6 +555,7 @@ class SeleccionaModelo(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
+    
        return luigi.contrib.s3.S3Target(path=output_path+'metadata'+self.fname+'.csv')
 
 
