@@ -541,12 +541,12 @@ class SeleccionaModelo(luigi.Task):
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
       
-       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
+       fname_pkl = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
        with self.output().open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo'+fname+'.pkl', 'wb'))
+           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
        
 
-       funciones_s3.upload_file('modelo'+fname+'.pkl', self.bucket, object_name=None)
+       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
 
 
     def output(self):
@@ -555,8 +555,9 @@ class SeleccionaModelo(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
+       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
     
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+self.fname+'.csv')
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
 
 
 
