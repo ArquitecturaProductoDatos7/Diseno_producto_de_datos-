@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
-from datetime import datetime
+import socket, getpass
+import datetime
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn_pandas import CategoricalImputer
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 import pickle
 
 
@@ -29,6 +31,8 @@ def preprocesamiento_variable(df):
     return df
 
 
+
+
 def separa_train_y_test(df, vars_mod, var_obj):
     "Separacion de mi set de entrenamiento y prueba"
 
@@ -43,6 +47,8 @@ def separa_train_y_test(df, vars_mod, var_obj):
 
 
     return X_train, X_test, y_train, y_test
+
+
 
 
 
@@ -64,6 +70,7 @@ def imputacion_variable_delegacion(X_train, X_test):
 
 
 
+
 def dummies_para_categoricas(X_train, X_test):
     "Esta funcion convierte variables categoricas a dummies"
 
@@ -78,7 +85,8 @@ def dummies_para_categoricas(X_train, X_test):
 
 
 
-#Para Ranfom Forest
+
+#Para Random Forest
 def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
     """
        Esta funcion ajusta el modelo de Random Forest con diferentes hiperparametros y regresa:
@@ -100,10 +108,6 @@ def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
 
     model=grid_search.fit(X_train, y_train)
 
-    #pickle
-#    filename = 'finalized_model.pkl'
-#    pickle.dump(grid_search, open(filename, 'wb'))
-
     cv_results = pd.DataFrame(grid_search.cv_results_)
     results = cv_results.sort_values(by='rank_test_score', ascending=True)
     results.drop(['param_max_depth', 'param_max_features','param_min_samples_leaf','param_min_samples_split',
@@ -111,6 +115,9 @@ def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
     results['modelo'] = 'random_forest'
 
     return results, model
+
+
+
 
 #Para Regresión logística
 def magic_loop_RL(X_train,y_train, hyper_params_grid):
@@ -141,8 +148,10 @@ def magic_loop_RL(X_train,y_train, hyper_params_grid):
 
     return results, model
 
+
+
 #Para XGboost
-def magic_loop_GB(X_train,y_train, hyper_params_grid):
+def magic_loop_XGB(X_train,y_train, hyper_params_grid):
     """
        Esta funcion ajusta el modelo de GradientBoosting con diferentes hiperparametros y regresa:
              - la informacion de todos los modelos, rankeados segun la metrica elegida
@@ -170,4 +179,29 @@ def magic_loop_GB(X_train,y_train, hyper_params_grid):
     results['modelo'] = 'xgboost'
 
     return results, model
+
+
+
+
+
+def completa_metadatos_modelo(meta, fname):
+
+    #Metadatos referentes al usuario y fecha de ejecucion
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    date_time = datetime.datetime.now()
+    fecha_de_ejecucion = date_time.strftime("%d/%m/%Y %H:%M:%S")
+    ip_address = ip_address
+    usuario = getpass.getuser()
+
+    otros_meta = pd.DataFrame({'fecha_de_ejecucion':fecha_de_ejecucion, 
+                               'ip_address': ip_address,
+                               'usuario': usuario,
+                               'archivo_modelo':'modelo'+fname+'.pkl',
+                               'archivo_metadatos': 'metadata'+fname+'.csv'}, index=[0])
+
+
+    metadata = pd.concat([otros_meta, meta], axis=1, sort=False)
+
+    return metadata
 

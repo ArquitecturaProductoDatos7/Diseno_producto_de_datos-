@@ -504,7 +504,7 @@ class ModeloRandomForest(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
-    fname=""
+    fname = ""
 
     def requires(self):
 
@@ -534,9 +534,11 @@ class ModeloRandomForest(luigi.Task):
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_ramdomF(X_train_input, y_train, hyper_params_grid)
+       print("**********\n", metadata)
 
        self.fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
-       metadata = completa_metadatos_modelo(meta, fname)
+       metadata = funciones_mod.completa_metadatos_modelo(metadata, self.fname)
+       print("**********\n", metadata)
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
@@ -544,9 +546,8 @@ class ModeloRandomForest(luigi.Task):
        with self.output().open('w') as outfile2:
            pickle.dump(grid_search,open('modelo'+self.fname+'.pkl', 'wb'))
 
-
-       funciones_s3.upload_file('modelo'+self.fname+'.pkl', self.bucket, object_name=None)
-
+       funciones_s3.upload_file('modelo'+self.fname+'.pkl', self.bucket,
+                                '{}/{}/modelo{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
     def output(self):
        output_path = "s3://{}/{}/{}/".\
@@ -554,21 +555,21 @@ class ModeloRandomForest(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
-#       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
+       fname2 = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
 
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+self.fname+'.csv')
-
-
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname2+'.csv')
 
 
 
 
-class SeleccionaModeloRegresion(luigi.Task):
+
+
+class ModeloRegresion(luigi.Task):
     "Esta tarea ejecuta el modelo de Regresión Logística con los parametros que recibe luigi y genera el pickle que se guarda en S3"
 
     #Parametros para el modelo
-    penalty=luigi.Parameter()
-    C=luigi.IntParameter()
+    penalty = luigi.Parameter()
+    c_param = luigi.IntParameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -583,7 +584,7 @@ class SeleccionaModeloRegresion(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
-
+    fname = ""
 
     def requires(self):
 
@@ -605,23 +606,24 @@ class SeleccionaModeloRegresion(luigi.Task):
 
        #Grid de hiper-parametros para el modelo
        hyper_params_grid= {'penalty': [self.penalty],
-                          'C':[self.C]}
+                          'C': [self.c_param]}
 
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_RL(X_train_input, y_train, hyper_params_grid)
 
+       fname = "_penalty_" + str(self.penalty) + "_C_" + str(self.c_param)
+       metadata = funciones_mod.completa_metadatos_modelo(metadata, fname)
 
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
-      
-       fname_pkl = "_penalty_" + str(self.penalty) + "_C_" + str(self.C)
-       with self.output().open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
-       
 
-       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
+       with self.output().open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo'+fname+'.pkl', 'wb'))
+
+       funciones_s3.upload_file('modelo'+fname+'.pkl', self.bucket,
+                                '{}/{}/modelo{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
 
     def output(self):
@@ -630,12 +632,14 @@ class SeleccionaModeloRegresion(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
-       fname = "_penalty_" + str(self.penalty) + "_C_" + str(self.C)
-    
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
-    
+       fname2 = "_penalty_" + str(self.penalty) + "_C_" + str(self.c_param)
 
-class SeleccionaModeloXG(luigi.Task):
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname2+'.csv')
+
+
+
+
+class ModeloXGB(luigi.Task):
     "Esta tarea ejecuta el modelo de XGboost con los parametros que recibe luigi y genera el pickle que se guarda en S3"
 
     #Parametros para el modelo
@@ -643,7 +647,6 @@ class SeleccionaModeloXG(luigi.Task):
     learning_rate=luigi.IntParameter()
     subsample=luigi.IntParameter()
     max_depth=luigi.IntParameter()
-    
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -658,7 +661,7 @@ class SeleccionaModeloXG(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
-
+    fname = "" 
 
     def requires(self):
 
@@ -686,17 +689,19 @@ class SeleccionaModeloXG(luigi.Task):
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_GB(X_train_input, y_train, hyper_params_grid)
 
+       fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
+       metadata = funciones_mod.completa_metadatos_modelo(metadata, fname)
 
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
-       fname_pkl = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
        with self.output().open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
+           pickle.dump(grid_search,open('modelo'+fname+'.pkl', 'wb'))
 
 
-       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
+       funciones_s3.upload_file('modelo'+fname+'.pkl', self.bucket,
+                                '{}/{}/modelo{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
 
     def output(self):
@@ -705,13 +710,15 @@ class SeleccionaModeloXG(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
-       fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth) 
+       fname2 = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth) 
 
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname2+'.csv')
 
 
 
-class InsertaMetadatosModelo(CopyToTable):
+
+
+class InsertaMetadatosRandomForest(CopyToTable):
     "Esta tarea guarda los metadatos del modelo a la RDS"
     #Parametros del modelo
     n_estimators = luigi.IntParameter()
@@ -729,7 +736,6 @@ class InsertaMetadatosModelo(CopyToTable):
     user = 'postgres'
     password = 'passwordDB'
     host = funciones_rds.db_endpoint(db_instance_id)
-   # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
 
     # Nombre de la tabla a insertar
     table = 'modelo.Metadatos'
@@ -770,16 +776,24 @@ class InsertaMetadatosModelo(CopyToTable):
 
     def requires(self):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
-                                          self.database, self.user, self.password),
-                 'infile2' : SeleccionaModelo(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, 
-                                            self.min_samples_leaf)}
+                                                         self.database, self.user, self.password),
+                 'infile2' : ModeloRandomForest(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, 
+                                                self.min_samples_leaf)}
+
+
+
+
+
+class InsertaMetadatosRegresion(CopyToTable):
+    """
+    Esta tarea guarda los metadatos del modelo de regresion logistica a la RDS
+       penalty{‘l1’, ‘l2’, ‘elasticnet’, ‘none’}, default=’l2’
+       Cfloat, default=1.0
+    """
     
-   
-class InsertaMetadatosModeloRegresion(CopyToTable):
-    "Esta tarea guarda los metadatos del modelo de regresion logistica a la RDS"
     #Parametros del modelo
-    penalty=luigi.Parameter()
-    C=luigi.IntParameter()
+    penalty = luigi.Parameter()
+    c_param = luigi.IntParameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -796,11 +810,16 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
     table = 'modelo.Metadatos'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("mean_fit_time", "VARCHAR"),
+    columns=[("fecha_de_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("archivo_modelo", "VARCHAR"),
+             ("archivo_metadatos", "VARCHAR"),
+             ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
              ("params", "VARCHAR"),
-             ("mean_score_time", "VARCHAR"),,
+             ("mean_score_time", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -826,16 +845,19 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
     def requires(self):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                           self.database, self.user, self.password),
-                 'infile2' : SeleccionaModeloRegresion(self.penalty, self.C)}
-    
-    
-class InsertaMetadatosModeloXG(CopyToTable):
+                 'infile2' : ModeloRegresion(self.penalty, self.c_param)}
+
+
+
+
+
+class InsertaMetadatosXGB(CopyToTable):
     "Esta tarea guarda los metadatos del modelo de XGboost a la RDS"
     #Parametros del modelo
-    n_estimators=luigi.IntParameter()
-    learning_rate=luigi.IntParameter()
-    subsample=luigi.IntParameter()
-    max_depth=luigi.IntParameter()
+    n_estimators = luigi.IntParameter()
+    learning_rate = luigi.IntParameter()
+    subsample = luigi.IntParameter()
+    max_depth = luigi.IntParameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -887,5 +909,5 @@ class InsertaMetadatosModeloXG(CopyToTable):
     def requires(self):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                           self.database, self.user, self.password),
-                 'infile2' : SeleccionaModeloXG(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
+                 'infile2' : ModeloXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
 
