@@ -98,7 +98,7 @@ def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
                                n_jobs = -1)
                                #verbose = 3)
 
-    grid_search.fit(X_train, y_train)
+    model=grid_search.fit(X_train, y_train)
 
     #pickle
 #    filename = 'finalized_model.pkl'
@@ -106,8 +106,11 @@ def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
 
     cv_results = pd.DataFrame(grid_search.cv_results_)
     results = cv_results.sort_values(by='rank_test_score', ascending=True)
+    results.drop(['param_max_depth', 'param_max_features','param_min_samples_leaf','param_min_samples_split',
+                  'param_n_estimators'], axis=1, inplace=True)
+    results['modelo'] = 'random_forest'
 
-    return results, grid_search
+    return results, model
 
 #Para Regresión logística
 def magic_loop_RL(X_train,y_train, hyper_params_grid):
@@ -125,16 +128,18 @@ def magic_loop_RL(X_train,y_train, hyper_params_grid):
                                hyper_params_grid,
                                scoring = 'precision',
                                #scoring = 'recall'
-                               cv = 2, 
+                               cv = 10, 
                                n_jobs = -1)
                                #verbose = 3)
 
-    grid_search.fit(X_train, y_train)
+    model=grid_search.fit(X_train, y_train)
 
     cv_results = pd.DataFrame(grid_search.cv_results_)
     results = cv_results.sort_values(by='rank_test_score', ascending=True)
+    results.drop(['param_C', 'param_penalty'], axis=1, inplace=True)
+    results['modelo'] = 'regresion_log'
 
-    return results, grid_search
+    return results, model
 
 #Para XGboost
 def magic_loop_GB(X_train,y_train, hyper_params_grid):
@@ -152,14 +157,17 @@ def magic_loop_GB(X_train,y_train, hyper_params_grid):
                                hyper_params_grid,
                                scoring = 'precision',
                                #scoring = 'recall'
-                               cv = 2, 
+                               cv = 10, 
                                n_jobs = -1)
                                #verbose = 3)
 
-    grid_search.fit(X_train, y_train)
+    model=grid_search.fit(X_train, y_train)
 
     cv_results = pd.DataFrame(grid_search.cv_results_)
     results = cv_results.sort_values(by='rank_test_score', ascending=True)
+    results.drop(['param_n_estimators', 'param_learning_rate','param_subsample',
+                 'param_max_depth'], axis=1, inplace=True)
+    results['modelo'] = 'xgboost'
 
-    return results, grid_search
+    return results, model
 

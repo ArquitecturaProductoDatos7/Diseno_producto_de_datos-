@@ -118,11 +118,6 @@ class CreaTablaModeloMetadatos(PostgresQuery):
                                           std_fit_time VARCHAR,
                                           mean_score_time VARCHAR,
                                           std_score_time VARCHAR,
-                                          param_max_depth VARCHAR,
-                                          param_max_features VARCHAR,
-                                          param_min_samples_leaf VARCHAR,
-                                          param_min_samples_split VARCHAR,
-                                          param_n_estimators VARCHAR,
                                           params VARCHAR,
                                           split0_test_score VARCHAR,
                                           split1_test_score VARCHAR,
@@ -136,101 +131,14 @@ class CreaTablaModeloMetadatos(PostgresQuery):
                                           split9_test_score VARCHAR,
                                           mean_test_score VARCHAR,
                                           std_test_score VARCHAR,
-                                          rank_test_score VARCHAR
+                                          rank_test_score VARCHAR,
+                                          modelo VARCHAR
                                           ); 
             """
 
     def requires(self):
          return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
-        
-
-#tabla para metadatos de Regresion logistcia
-class CreaTablaModeloMetadatosRL(PostgresQuery):
-    "Crea la tabla de los metadatos para regresion logistica dentro del esquema MODELO"
-    #Para la creacion de la base
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-    #Para conectarse a la base
-    host = luigi.Parameter()
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-
-    table = ""
-    query = """
-            CREATE TABLE modelo.MetadatosRL(mean_fit_time VARCHAR,
-                                          std_fit_time VARCHAR,
-                                          mean_score_time VARCHAR,
-                                          param_C VARCHAR,
-                                          param_penalty VARCHAR,
-                                          params VARCHAR,
-                                          split0_test_score VARCHAR,
-                                          split1_test_score VARCHAR,
-                                          split2_test_score VARCHAR,
-                                          split3_test_score VARCHAR,
-                                          split4_test_score VARCHAR,
-                                          split5_test_score VARCHAR,
-                                          split6_test_score VARCHAR,
-                                          split7_test_score VARCHAR,
-                                          split8_test_score VARCHAR,
-                                          split9_test_score VARCHAR,
-                                          mean_test_score VARCHAR,
-                                          std_test_score VARCHAR,
-                                          rank_test_score VARCHAR
-                                          ); 
-            """
-
-    def requires(self):
-         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
-        
-        
-#tabla para metadatos de XGboost
-class CreaTablaModeloMetadatosXG(PostgresQuery):
-    "Crea la tabla de los metadatos para XGboost dentro del esquema MODELO"
-    #Para la creacion de la base
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-    #Para conectarse a la base
-    host = luigi.Parameter()
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-
-    table = ""
-    query = """
-            CREATE TABLE modelo.MetadatosXG(mean_fit_time VARCHAR,
-                                          std_fit_time VARCHAR,
-                                          mean_score_time VARCHAR,
-                                          learning_rate VARCHAR,
-                                          subsample VARCHAR,
-                                          split0_test_score VARCHAR,
-                                          split1_test_score VARCHAR,
-                                          split2_test_score VARCHAR,
-                                          split3_test_score VARCHAR,
-                                          split4_test_score VARCHAR,
-                                          split5_test_score VARCHAR,
-                                          split6_test_score VARCHAR,
-                                          split7_test_score VARCHAR,
-                                          split8_test_score VARCHAR,
-                                          split9_test_score VARCHAR,
-                                          mean_test_score VARCHAR,
-                                          std_test_score VARCHAR,
-                                          rank_test_score VARCHAR
-                                          ); 
-            """
-
-    def requires(self):
-         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
-        
-
-
+                                   self.host, self.database, self.user, self.password) 
 
 
 
@@ -836,11 +744,6 @@ class InsertaMetadatosModelo(CopyToTable):
              ("std_fit_time", "VARCHAR"),
              ("mean_score_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
-             ("param_max_depth", "VARCHAR"),
-             ("param_max_features", "VARCHAR"),
-             ("param_min_samples_leaf", "VARCHAR"),
-             ("param_min_samples_split", "VARCHAR"),
-             ("param_n_estimators", "VARCHAR"),
              ("params", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
@@ -854,7 +757,8 @@ class InsertaMetadatosModelo(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
 
     def rows(self):
@@ -889,14 +793,14 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
    # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
 
     # Nombre de la tabla a insertar
-    table = 'modelo.MetadatosRL'
+    table = 'modelo.Metadatos'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
     columns=[("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
+             ("std_score_time", "VARCHAR"),
+             ("params", "VARCHAR"),
              ("mean_score_time", "VARCHAR"),,
-             ("param_C", "VARCHAR"),
-             ("param_penalty", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -909,7 +813,8 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -919,7 +824,7 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
 
 
     def requires(self):
-        return  {'infile1' : CreaTablaModeloMetadatosRL(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+        return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                           self.database, self.user, self.password),
                  'infile2' : SeleccionaModeloRegresion(self.penalty, self.C)}
     
@@ -944,7 +849,7 @@ class InsertaMetadatosModeloXG(CopyToTable):
    # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
 
     # Nombre de la tabla a insertar
-    table = 'modelo.MetadatosXG'
+    table = 'modelo.Metadatos'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
     columns=[("fecha_de_ejecucion", "VARCHAR"),
@@ -954,9 +859,9 @@ class InsertaMetadatosModeloXG(CopyToTable):
              ("archivo_metadatos", "VARCHAR"),
              ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
-             ("mean_score_time", "VARCHAR"),,
-             ("learning_rate", "VARCHAR"),
-             ("subsample", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),
+             ("std_score_time", "VARCHAR"),
+             ("params", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -969,7 +874,8 @@ class InsertaMetadatosModeloXG(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -979,9 +885,7 @@ class InsertaMetadatosModeloXG(CopyToTable):
 
 
     def requires(self):
-        return  {'infile1' : CreaTablaModeloMetadatosXG(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+        return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                           self.database, self.user, self.password),
                  'infile2' : SeleccionaModeloXG(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
 
-
-                                          
