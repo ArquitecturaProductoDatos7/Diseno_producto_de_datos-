@@ -109,7 +109,12 @@ class CreaTablaModeloMetadatos(PostgresQuery):
 
     table = ""
     query = """
-            CREATE TABLE modelo.Metadatos(mean_fit_time VARCHAR,
+            CREATE TABLE modelo.Metadatos(fecha_de_ejecucion VARCHAR,
+                                          ip_address VARCHAR,
+                                          usuario VARCHAR,
+                                          archivo_modelo VARCHAR,
+                                          archivo_metadatos VARCHAR,
+                                          mean_fit_time VARCHAR,
                                           std_fit_time VARCHAR,
                                           mean_score_time VARCHAR,
                                           std_score_time VARCHAR,
@@ -568,7 +573,7 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
 
 
 
-class SeleccionaModelo(luigi.Task):
+class ModeloRandomForest(luigi.Task):
     "Esta tarea ejecuta el modelo de Ranfom Forest con los parametros que recibe luigi y genera el pickle que se guarda en S3"
 
     #Parametros para el modelo
@@ -591,7 +596,7 @@ class SeleccionaModelo(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
-
+    fname=""
 
     def requires(self):
 
@@ -622,17 +627,17 @@ class SeleccionaModelo(luigi.Task):
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_ramdomF(X_train_input, y_train, hyper_params_grid)
 
-
+       self.fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
+       metadata = completa_metadatos_modelo(meta, fname)
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
-      
-       fname_pkl = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
-       with self.output().open('w') as outfile2:
-           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
-       
 
-       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
+       with self.output().open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo'+self.fname+'.pkl', 'wb'))
+
+
+       funciones_s3.upload_file('modelo'+self.fname+'.pkl', self.bucket, object_name=None)
 
 
     def output(self):
@@ -641,11 +646,15 @@ class SeleccionaModelo(luigi.Task):
                              self.root_path,
                              self.folder_path,
                             )
-       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
-    
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
-    
-    
+#       fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
+
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+self.fname+'.csv')
+
+
+
+
+
+
 class SeleccionaModeloRegresion(luigi.Task):
     "Esta tarea ejecuta el modelo de Regresión Logística con los parametros que recibe luigi y genera el pickle que se guarda en S3"
 
@@ -773,11 +782,11 @@ class SeleccionaModeloXG(luigi.Task):
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
-      
+
        fname_pkl = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
        with self.output().open('w') as outfile2:
            pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
-       
+
 
        funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
 
@@ -789,10 +798,10 @@ class SeleccionaModeloXG(luigi.Task):
                              self.folder_path,
                             )
        fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth) 
-    
+
        return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
-    
-   
+
+
 
 class InsertaMetadatosModelo(CopyToTable):
     "Esta tarea guarda los metadatos del modelo a la RDS"
@@ -818,7 +827,12 @@ class InsertaMetadatosModelo(CopyToTable):
     table = 'modelo.Metadatos'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("mean_fit_time", "VARCHAR"),
+    columns=[("fecha_de_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("archivo_modelo", "VARCHAR"),
+             ("archivo_metadatos", "VARCHAR"),
+             ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
              ("mean_score_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
@@ -841,6 +855,7 @@ class InsertaMetadatosModelo(CopyToTable):
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
              ("rank_test_score", "INT")]
+
 
     def rows(self):
          #Leemos el df de metadatos
@@ -932,7 +947,12 @@ class InsertaMetadatosModeloXG(CopyToTable):
     table = 'modelo.MetadatosXG'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("mean_fit_time", "VARCHAR"),
+    columns=[("fecha_de_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("archivo_modelo", "VARCHAR"),
+             ("archivo_metadatos", "VARCHAR"),
+             ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
              ("mean_score_time", "VARCHAR"),,
              ("learning_rate", "VARCHAR"),
