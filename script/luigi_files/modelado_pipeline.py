@@ -126,7 +126,8 @@ class CreaTablaModeloMetadatos(PostgresQuery):
                                           split9_test_score VARCHAR,
                                           mean_test_score VARCHAR,
                                           std_test_score VARCHAR,
-                                          rank_test_score VARCHAR
+                                          rank_test_score VARCHAR,
+                                          modelo VARCHAR
                                           ); 
             """
 
@@ -742,7 +743,8 @@ class InsertaMetadatosModelo(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -796,7 +798,8 @@ class InsertaMetadatosModeloRegresion(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -851,7 +854,8 @@ class InsertaMetadatosModeloXG(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT")]
+             ("rank_test_score", "INT"),
+             ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
