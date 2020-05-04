@@ -78,11 +78,11 @@ def dummies_para_categoricas(X_train, X_test):
 
 
 
-
-def magic_loop(X_train,y_train, hyper_params_grid):
+#Para Ranfom Forest
+def magic_loop_ramdomF(X_train,y_train, hyper_params_grid):
     """
-       Esta funcion ajusta varios modelos con diferentes hiperparametros y regresa:
-             - la informacion de todos lod modelos, rankeados segun la metrica elegida
+       Esta funcion ajusta el modelo de Random Forest con diferentes hiperparametros y regresa:
+             - la informacion de todos los modelos, rankeados segun la metrica elegida
              - el nombre del pickle donde se guarda el *mejor* modelo ya entrenado
     """
     #Convertimos de column vector a 1d array
@@ -108,3 +108,58 @@ def magic_loop(X_train,y_train, hyper_params_grid):
     results = cv_results.sort_values(by='rank_test_score', ascending=True)
 
     return results, grid_search
+
+#Para Regresión logística
+def magic_loop_RL(X_train,y_train, hyper_params_grid):
+    """
+       Esta funcion ajusta el modelo de Regresión Logística con diferentes hiperparametros y regresa:
+             - la informacion de todos los modelos, rankeados segun la metrica elegida
+             - el nombre del pickle donde se guarda el *mejor* modelo ya entrenado
+    """
+    #Convertimos de column vector a 1d array
+    y_train = y_train.values.ravel()
+
+    classifier = LogisticRegression(solver='liblinear')
+
+    grid_search = GridSearchCV(classifier,
+                               hyper_params_grid,
+                               scoring = 'precision',
+                               #scoring = 'recall'
+                               cv = 2, 
+                               n_jobs = -1)
+                               #verbose = 3)
+
+    grid_search.fit(X_train, y_train)
+
+    cv_results = pd.DataFrame(grid_search.cv_results_)
+    results = cv_results.sort_values(by='rank_test_score', ascending=True)
+
+    return results, grid_search
+
+#Para XGboost
+def magic_loop_GB(X_train,y_train, hyper_params_grid):
+    """
+       Esta funcion ajusta el modelo de GradientBoosting con diferentes hiperparametros y regresa:
+             - la informacion de todos los modelos, rankeados segun la metrica elegida
+             - el nombre del pickle donde se guarda el *mejor* modelo ya entrenado
+    """
+    #Convertimos de column vector a 1d array
+    y_train = y_train.values.ravel()
+
+    classifier = GradientBoostingClassifier()
+
+    grid_search = GridSearchCV(classifier,
+                               hyper_params_grid,
+                               scoring = 'precision',
+                               #scoring = 'recall'
+                               cv = 2, 
+                               n_jobs = -1)
+                               #verbose = 3)
+
+    grid_search.fit(X_train, y_train)
+
+    cv_results = pd.DataFrame(grid_search.cv_results_)
+    results = cv_results.sort_values(by='rank_test_score', ascending=True)
+
+    return results, grid_search
+
