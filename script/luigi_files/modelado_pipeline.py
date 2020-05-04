@@ -138,6 +138,92 @@ class CreaTablaModeloMetadatos(PostgresQuery):
     def requires(self):
          return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
                                    self.host, self.database, self.user, self.password)
+        
+
+#tabla para metadatos de Regresion logistcia
+class CreaTablaModeloMetadatosRL(PostgresQuery):
+    "Crea la tabla de los metadatos para regresion logistica dentro del esquema MODELO"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE modelo.MetadatosRL(mean_fit_time VARCHAR,
+                                          std_fit_time VARCHAR,
+                                          mean_score_time VARCHAR,
+                                          param_C VARCHAR,
+                                          param_penalty VARCHAR,
+                                          params VARCHAR,
+                                          split0_test_score VARCHAR,
+                                          split1_test_score VARCHAR,
+                                          split2_test_score VARCHAR,
+                                          split3_test_score VARCHAR,
+                                          split4_test_score VARCHAR,
+                                          split5_test_score VARCHAR,
+                                          split6_test_score VARCHAR,
+                                          split7_test_score VARCHAR,
+                                          split8_test_score VARCHAR,
+                                          split9_test_score VARCHAR,
+                                          mean_test_score VARCHAR,
+                                          std_test_score VARCHAR,
+                                          rank_test_score VARCHAR
+                                          ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+        
+        
+#tabla para metadatos de XGboost
+class CreaTablaModeloMetadatosXG(PostgresQuery):
+    "Crea la tabla de los metadatos para XGboost dentro del esquema MODELO"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE modelo.MetadatosXG(mean_fit_time VARCHAR,
+                                          std_fit_time VARCHAR,
+                                          mean_score_time VARCHAR,
+                                          learning_rate VARCHAR,
+                                          subsample VARCHAR,
+                                          split0_test_score VARCHAR,
+                                          split1_test_score VARCHAR,
+                                          split2_test_score VARCHAR,
+                                          split3_test_score VARCHAR,
+                                          split4_test_score VARCHAR,
+                                          split5_test_score VARCHAR,
+                                          split6_test_score VARCHAR,
+                                          split7_test_score VARCHAR,
+                                          split8_test_score VARCHAR,
+                                          split9_test_score VARCHAR,
+                                          mean_test_score VARCHAR,
+                                          std_test_score VARCHAR,
+                                          rank_test_score VARCHAR
+                                          ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+        
 
 
 
@@ -483,7 +569,7 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
 
 
 class SeleccionaModelo(luigi.Task):
-    "Esta tarea convierte las variables categoricas a dummies (One-hot encoder) para la base Train & Test"
+    "Esta tarea ejecuta el modelo de Ranfom Forest con los parametros que recibe luigi y genera el pickle que se guarda en S3"
 
     #Parametros para el modelo
     n_estimators = luigi.IntParameter()
@@ -534,7 +620,7 @@ class SeleccionaModelo(luigi.Task):
 
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
-       [metadata, grid_search] = funciones_mod.magic_loop(X_train_input, y_train, hyper_params_grid)
+       [metadata, grid_search] = funciones_mod.magic_loop_ramdomF(X_train_input, y_train, hyper_params_grid)
 
 
        #Se guardan los archivos
@@ -558,12 +644,155 @@ class SeleccionaModelo(luigi.Task):
        fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf) 
     
        return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
+    
+    
+class SeleccionaModeloRegresion(luigi.Task):
+    "Esta tarea ejecuta el modelo de Regresión Logística con los parametros que recibe luigi y genera el pickle que se guarda en S3"
+
+    #Parametros para el modelo
+    penalty=luigi.Parameter()
+    C=luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Parametros del Bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+
+    #Folder para guardar la tarea actual en el s3
+    folder_path = '5.modelo'
 
 
+    def requires(self):
+
+       return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                      self.db_user_password, self.subnet_group, self.security_group,
+                                      self.bucket, self.root_path)}
 
 
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['X_train'].open('r') as infile1:
+             X_train_input = pd.read_csv(infile1, sep="\t")
+       with self.input()['infiles']['X_test'].open('r') as infile2:
+             X_test_input = pd.read_csv(infile2, sep="\t")
+       with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+       with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+
+       #Grid de hiper-parametros para el modelo
+       hyper_params_grid= {'penalty': [self.penalty],
+                          'C':[self.C]}
+
+       print('***** Comienza a calcular el modelo *****')
+       #Se corre el modelo
+       [metadata, grid_search] = funciones_mod.magic_loop_RL(X_train_input, y_train, hyper_params_grid)
 
 
+       #Se guardan los archivos
+       with self.output().open('w') as outfile1:
+           metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
+      
+       fname_pkl = "_penalty_" + str(self.penalty) + "_C_" + str(self.C)
+       with self.output().open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
+       
+
+       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+       fname = "_penalty_" + str(self.penalty) + "_C_" + str(self.C)
+    
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
+    
+
+class SeleccionaModeloXG(luigi.Task):
+    "Esta tarea ejecuta el modelo de XGboost con los parametros que recibe luigi y genera el pickle que se guarda en S3"
+
+    #Parametros para el modelo
+    n_estimators=luigi.IntParameter()
+    learning_rate=luigi.IntParameter()
+    subsample=luigi.IntParameter()
+    max_depth=luigi.IntParameter()
+    
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Parametros del Bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+
+    #Folder para guardar la tarea actual en el s3
+    folder_path = '5.modelo'
+
+
+    def requires(self):
+
+       return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                      self.db_user_password, self.subnet_group, self.security_group,
+                                      self.bucket, self.root_path)}
+
+
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['X_train'].open('r') as infile1:
+             X_train_input = pd.read_csv(infile1, sep="\t")
+       with self.input()['infiles']['X_test'].open('r') as infile2:
+             X_test_input = pd.read_csv(infile2, sep="\t")
+       with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+       with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+
+       #Grid de hiper-parametros para el modelo
+       hyper_params_grid= {'n_estimators': [self.n_estimators],'learning_rate':[self.learning_rate],
+                          'subsample':[self.subsample], 'max_depth':[self.max_depth]}
+
+       print('***** Comienza a calcular el modelo *****')
+       #Se corre el modelo
+       [metadata, grid_search] = funciones_mod.magic_loop_GB(X_train_input, y_train, hyper_params_grid)
+
+
+       #Se guardan los archivos
+       with self.output().open('w') as outfile1:
+           metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
+      
+       fname_pkl = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
+       with self.output().open('w') as outfile2:
+           pickle.dump(grid_search,open('modelo'+fname_pkl+'.pkl', 'wb'))
+       
+
+       funciones_s3.upload_file('modelo'+fname_pkl+'.pkl', self.bucket, object_name=None)
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+       fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth) 
+    
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata'+fname+'.csv')
+    
+   
 
 class InsertaMetadatosModelo(CopyToTable):
     "Esta tarea guarda los metadatos del modelo a la RDS"
@@ -625,6 +854,114 @@ class InsertaMetadatosModelo(CopyToTable):
                                           self.database, self.user, self.password),
                  'infile2' : SeleccionaModelo(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, 
                                             self.min_samples_leaf)}
+    
+   
+class InsertaMetadatosModeloRegresion(CopyToTable):
+    "Esta tarea guarda los metadatos del modelo de regresion logistica a la RDS"
+    #Parametros del modelo
+    penalty=luigi.Parameter()
+    C=luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+   # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
+
+    # Nombre de la tabla a insertar
+    table = 'modelo.MetadatosRL'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("mean_fit_time", "VARCHAR"),
+             ("std_fit_time", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),,
+             ("param_C", "VARCHAR"),
+             ("param_penalty", "VARCHAR"),
+             ("split0_test_score", "VARCHAR"),
+             ("split1_test_score", "VARCHAR"),
+             ("split2_test_score", "VARCHAR"),
+             ("split3_test_score", "VARCHAR"),
+             ("split4_test_score", "VARCHAR"),
+             ("split5_test_score", "VARCHAR"),
+             ("split6_test_score", "VARCHAR"),
+             ("split7_test_score", "VARCHAR"),
+             ("split8_test_score", "VARCHAR"),
+             ("split9_test_score", "VARCHAR"),
+             ("mean_test_score", "VARCHAR"),
+             ("std_test_score", "VARCHAR"),
+             ("rank_test_score", "INT")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()['infile2'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
 
 
+    def requires(self):
+        return  {'infile1' : CreaTablaModeloMetadatosRL(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+                                          self.database, self.user, self.password),
+                 'infile2' : SeleccionaModeloRegresion(self.penalty, self.C)}
+    
+    
+class InsertaMetadatosModeloXG(CopyToTable):
+    "Esta tarea guarda los metadatos del modelo de XGboost a la RDS"
+    #Parametros del modelo
+    n_estimators=luigi.IntParameter()
+    learning_rate=luigi.IntParameter()
+    subsample=luigi.IntParameter()
+    max_depth=luigi.IntParameter()
 
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+   # host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
+
+    # Nombre de la tabla a insertar
+    table = 'modelo.MetadatosXG'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("mean_fit_time", "VARCHAR"),
+             ("std_fit_time", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),,
+             ("learning_rate", "VARCHAR"),
+             ("subsample", "VARCHAR"),
+             ("split0_test_score", "VARCHAR"),
+             ("split1_test_score", "VARCHAR"),
+             ("split2_test_score", "VARCHAR"),
+             ("split3_test_score", "VARCHAR"),
+             ("split4_test_score", "VARCHAR"),
+             ("split5_test_score", "VARCHAR"),
+             ("split6_test_score", "VARCHAR"),
+             ("split7_test_score", "VARCHAR"),
+             ("split8_test_score", "VARCHAR"),
+             ("split9_test_score", "VARCHAR"),
+             ("mean_test_score", "VARCHAR"),
+             ("std_test_score", "VARCHAR"),
+             ("rank_test_score", "INT")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()['infile2'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  {'infile1' : CreaTablaModeloMetadatosXG(self.db_instance_id, self.subnet_group, self.security_group, self.host,
+                                          self.database, self.user, self.password),
+                 'infile2' : SeleccionaModeloXG(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
+
+
+                                          
