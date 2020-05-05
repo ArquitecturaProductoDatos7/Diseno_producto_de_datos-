@@ -7,11 +7,13 @@ from luigi.contrib.postgres import CopyToTable, PostgresQuery
 import pandas as pd
 import socket
 import getpass
+import pandas.io.sql as psql
 import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
 from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
+
 
 
 class CreaEsquemaProcesamiento(PostgresQuery):
@@ -910,4 +912,100 @@ class InsertaMetadatosXGB(CopyToTable):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                           self.database, self.user, self.password),
                  'infile2' : ModeloXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
+
+    
+
+    
+class PrediccionesConMejorModelo(Luigi.Task):
+    
+    
+    #Parámetros de los modelos
+    penalty = luigi.Parameter()
+    c_param = luigi.IntParameter()
+    
+    n_estimators=luigi.IntParameter()
+    learning_rate=luigi.IntParameter()
+    subsample=luigi.IntParameter()
+    max_depth=luigi.IntParameter()
+    
+    n_estimators_rf = luigi.IntParameter()
+    max_depth_rf = luigi.IntParameter()
+    max_features = luigi.Parameter()
+    min_samples_split = luigi.IntParameter()
+    min_samples_leaf = luigi.IntParameter()
+    
+    #Parámetros para la rds
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    host = funciones_rds.db_endpoint(db_instance_id)
+    
+    # Parametros del Bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '5.modelo'
+    
+    #Folder para guardar la tarea actual en el s3
+    folder_path_predicciones = '6.predicciones'
+    
+    def requires(self):
+        return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                      self.db_user_password, self.subnet_group, self.security_group,
+                                      self.bucket, self.root_path),
+                'infile1' : InsertaMetadatosXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth),
+                'infile2' : InsertaMetadatosRegresion(self.penalty, self.c_param),
+                'infile3' : InsertaMetadatosRandomForest(self.n_estimators_rf, self.max_depth_rf, self.max_features,self.min_samples_split, self.min_samples_leaf)}
+    
+    
+    
+    #connection=pg.connect(host=db_instance_endpoint,
+                     #port=port,
+                     #user=DB_USER_NAME,
+                     #password=DB_USER_PASSWORD,
+                     #database=DB_NAME)
+    def run(self):
+        
+        with self.input()['infiles']['X_train'].open('r') as infile1:
+            X_train_input = pd.read_csv(infile1, sep="\t")
+        with self.input()['infiles']['X_test'].open('r') as infile2:
+            X_test_input = pd.read_csv(infile2, sep="\t")
+        with self.input()['infiles']['y_train'].open('r') as infile3:
+             y_train = pd.read_csv(infile3, sep="\t")
+        with self.input()['infiles']['y_test'].open('r') as infile4:
+             y_test = pd.read_csv(infile4, sep="\t")
+            
+        #hacemos la consulta para traer el nombre del archivo pickle del mejor modelo
+        connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
+        archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos order by cast(mean_test_score as double) DESC limit 1", connection)
+        
+        #lo extraemos del s3
+        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+        s3_resource = boto3.client('s3')
+        #response=s3_resource.get_object(Bucket=bucket,Key='bucket_incidentes_cdmx/5.modelo/'+mejormodelo)
+        response=s3_resource.get_object(Bucket=bucket,Key=root_path +'/'+ folder_path +'/'+ archivo_mejormodelo)
+        body=response['Body'].read()
+        mejor_modelo=pickle.loads(body)
+        
+        #hacemos las predicciones de la etiqueta y de las probabilidades
+        mejor_modelo.fit(X_train_input,y_train)
+        ynew_proba = mejor_modelo.predict_proba(X_test_input)
+        ynew_etiqueta = mejor_modelo.predict(X_test_input)
+        
+        #armamos un data frame
+        variables={'ynew_proba_0':ynew_proba[:,0],'ynew_proba_1':ynew_proba[:,1],'ynew_etiqueta':ynew_etiqueta,'y_test':y_test}
+        predicciones=pd.DataFrame(variables)
+        
+        with self.output().open('w') as outfile:
+            predicciones.to_csv(outfile, sep='\t', encoding='utf-8', index=None)
+    
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                             format(self.bucket,
+                             self.root_path,
+                             self.folder_path_predicciones,
+                            )
+        return luigi.contrib.s3.S3Target(path=output_path+'predicciones.csv')
 
