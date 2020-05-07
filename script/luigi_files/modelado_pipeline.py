@@ -924,26 +924,62 @@ class InsertaMetadatosXGB(CopyToTable):
                                           self.database, self.user, self.password),
                  'infile2' : ModeloXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
 
-    
 
-    
+
+
+
+
+class CorreModelos(luigi.task.WrapperTask):
+    """
+    Esta tarrea corre 3 modelos (Random Forest, Regresion Logistica, XGBoost) con diferentes parametros
+    """
+    #Parametros del modelo random forest
+    n_estimators_rf = [1, 2] #luigi.IntParameter()
+    max_depth_rf = [20, 21] #luigi.IntParameter()
+    max_features = 'sqrt' #luigi.Parameter()
+    min_samples_split = [100, 150] #luigi.IntParameter()
+    min_samples_leaf = [50, 60] #luigi.IntParameter()
+    #Regresion logistica
+    penalty = ['l1', 'l2']
+    c_param = [1, 1.5]
+    #XGBoost
+    n_estimators = [1, 2] #luigi.IntParameter()
+    learning_rate = [0.5, 1] #luigi.FloatParameter()
+    subsample = [0.5, 1] #luigi.FloatParameter()
+    max_depth = [50, 60] #luigi.IntParameter()
+
+
+    def requires(self):
+        yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_depth_rf] for l in self.min_samples_split] for m in self.min_samples_leaf]
+        yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
+        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
+
+
+
+
+
+
+
+
+
 class PrediccionesConMejorModelo(luigi.Task):
-    
     #Parámetros de los modelos
-    penalty = luigi.Parameter()
-    c_param = luigi.IntParameter()
-    
-    n_estimators=luigi.IntParameter()
-    learning_rate=luigi.IntParameter()
-    subsample=luigi.IntParameter()
-    max_depth=luigi.IntParameter()
-    
+    #random forest
     n_estimators_rf = luigi.IntParameter()
     max_depth_rf = luigi.IntParameter()
     max_features = luigi.Parameter()
     min_samples_split = luigi.IntParameter()
     min_samples_leaf = luigi.IntParameter()
-    
+    #Regresion logistica
+    penalty = luigi.Parameter()
+    c_param = luigi.IntParameter()
+    #XGBooster
+    n_estimators=luigi.IntParameter()
+    learning_rate=luigi.IntParameter()
+    subsample=luigi.IntParameter()
+    max_depth=luigi.IntParameter()
+
+
     #Parámetros para la rds
     db_instance_id = 'db-dpa20'
     db_name = 'db_incidentes_cdmx'
@@ -952,15 +988,15 @@ class PrediccionesConMejorModelo(luigi.Task):
     subnet_group = 'subnet_gp_dpa20'
     security_group = 'sg-09b7d6fd6a0daf19a'
     host = funciones_rds.db_endpoint(db_instance_id)
-    
+
     # Parametros del Bucket
     bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
     root_path = 'bucket_incidentes_cdmx'
     folder_path = '5.modelo'
-    
+
     #Folder para guardar la tarea actual en el s3
     folder_path_predicciones = '6.predicciones'
-    
+
     def requires(self):
         return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
                                       self.db_user_password, self.subnet_group, self.security_group,
@@ -968,16 +1004,15 @@ class PrediccionesConMejorModelo(luigi.Task):
                 'infile1' : InsertaMetadatosXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth),
                 'infile2' : InsertaMetadatosRegresion(self.penalty, self.c_param),
                 'infile3' : InsertaMetadatosRandomForest(self.n_estimators_rf, self.max_depth_rf, self.max_features,self.min_samples_split, self.min_samples_leaf)}
-    
-    
-    
+
+
     #connection=pg.connect(host=db_instance_endpoint,
                      #port=port,
                      #user=DB_USER_NAME,
                      #password=DB_USER_PASSWORD,
                      #database=DB_NAME)
     def run(self):
-        
+
         with self.input()['infiles']['X_train'].open('r') as infile1:
             X_train_input = pd.read_csv(infile1, sep="\t")
         with self.input()['infiles']['X_test'].open('r') as infile2:
@@ -986,7 +1021,7 @@ class PrediccionesConMejorModelo(luigi.Task):
              y_train = pd.read_csv(infile3, sep="\t")
         with self.input()['infiles']['y_test'].open('r') as infile4:
              y_test = pd.read_csv(infile4, sep="\t")
-            
+
         #hacemos la consulta para traer el nombre del archivo pickle del mejor modelo
         connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
         archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos order by cast(mean_test_score as double) DESC limit 1", connection)
@@ -998,19 +1033,19 @@ class PrediccionesConMejorModelo(luigi.Task):
         response=s3_resource.get_object(Bucket=bucket,Key=root_path +'/'+ folder_path +'/'+ archivo_mejormodelo)
         body=response['Body'].read()
         mejor_modelo=pickle.loads(body)
-        
+
         #hacemos las predicciones de la etiqueta y de las probabilidades
         mejor_modelo.fit(X_train_input,y_train)
         ynew_proba = mejor_modelo.predict_proba(X_test_input)
         ynew_etiqueta = mejor_modelo.predict(X_test_input)
-        
+
         #armamos un data frame
         variables={'ynew_proba_0':ynew_proba[:,0],'ynew_proba_1':ynew_proba[:,1],'ynew_etiqueta':ynew_etiqueta,'y_test':y_test}
         predicciones=pd.DataFrame(variables)
-        
+
         with self.output().open('w') as outfile:
             predicciones.to_csv(outfile, sep='\t', encoding='utf-8', index=None)
-    
+
     def output(self):
         output_path = "s3://{}/{}/{}/".\
                              format(self.bucket,
