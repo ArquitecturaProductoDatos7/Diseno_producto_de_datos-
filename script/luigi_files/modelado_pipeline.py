@@ -790,8 +790,7 @@ class InsertaMetadatosRandomForest(CopyToTable):
     def requires(self):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                                          self.database, self.user, self.password),
-                 'infile2' : ModeloRandomForest(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, 
-                                                self.min_samples_leaf)}
+                 'infile2' : ModeloRandomForest(self.n_estimators, self.max_depth, self.max_features, self.min_samples_split, self.min_samples_leaf)}
 
 
 
@@ -934,25 +933,25 @@ class CorreModelos(luigi.task.WrapperTask):
     Esta tarrea corre 3 modelos (Random Forest, Regresion Logistica, XGBoost) con diferentes parametros
     """
     #Parametros del modelo random forest
-    n_estimators_rf = [1, 2] #luigi.IntParameter()
-    max_depth_rf = [20, 21] #luigi.IntParameter()
-    max_features = 'sqrt' #luigi.Parameter()
-    min_samples_split = [100, 150] #luigi.IntParameter()
-    min_samples_leaf = [50, 60] #luigi.IntParameter()
+    n_estimators_rf = [100, 500] #luigi.IntParameter()
+    max_depth_rf = [20, 50, 100] #luigi.IntParameter()
+    max_features = ["sqrt", "log2"] #luigi.Parameter()
+    min_samples_split = [10, 25, 50] #luigi.IntParameter()
+    min_samples_leaf = [5, 10, 20]
     #Regresion logistica
     penalty = ['l1', 'l2']
     c_param = [1, 1.5]
     #XGBoost
-    n_estimators = [1, 2] #luigi.IntParameter()
-    learning_rate = [0.5, 1] #luigi.FloatParameter()
-    subsample = [0.5, 1] #luigi.FloatParameter()
-    max_depth = [50, 60] #luigi.IntParameter()
+    n_estimators = [100, 500] #luigi.IntParameter()
+    learning_rate = [0.25, 0.5] #luigi.FloatParameter()
+    subsample = [1]  #luigi.FloatParameter()
+    max_depth = [20, 50, 100] #luigi.IntParameter()
 
 
     def requires(self):
-        yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_depth_rf] for l in self.min_samples_split] for m in self.min_samples_leaf]
-        yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
-        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
+        yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_features] for l in self.min_samples_split] for m in self.min_samples_leaf]
+#        yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
+#        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
 
 
 
