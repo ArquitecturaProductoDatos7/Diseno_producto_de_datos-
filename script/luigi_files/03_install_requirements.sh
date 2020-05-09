@@ -9,6 +9,7 @@ pip3 install -r Requirements.txt
 pip3 install sklearn
 pip3 install sklearn_pandas
 pip3 install sqlalchemy
+pip3 install marbles
 
 
 sudo apt install awscli
