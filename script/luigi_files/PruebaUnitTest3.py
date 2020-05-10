@@ -5,22 +5,12 @@ import funciones_s3
 import marbles.core
 import numpy as np
 
-class TestFeatureEngineering1(marbles.core.TestCase):
+class TestClean(marbles.core.TestCase):
     """ 
-    Clase para ejecutar las pruebas unitaria
+    Clase para ejecutar las pruebas unitarias en la etapa clean
     """
-
     #Buscamos el archivo del bucket en la S3
     data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
- 
-    def test_colum_Incidente_c4_rec_uniques(self):
-        """ 
-        Función para probar que el número de categorías en la variable incidente_c4_rec sea 5, 
-        ya que así se reclasificó.
-        """
-        unicos = self.data['incidente_c4_rec'].nunique()
-
-        self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
     def test_islower_w_marbles(self):
         """ 
@@ -40,5 +30,3 @@ class TestFeatureEngineering1(marbles.core.TestCase):
         
         self.assertTrue(mes.dtype == np.int64)
         #self.assertTrue(mes.dtype == np.object)  #Con este ejemplo no pasaría la prueba
-        
-        
