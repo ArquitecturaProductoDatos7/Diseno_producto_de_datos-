@@ -227,6 +227,7 @@ class TestLoad(luigi.Task):
      def run(self):
         prueba_load = TestFeatureEngineering1()
         prueba_load.test_colum_Incidente_c4_rec_uniques()
+        prueba_load.test_islower_w_marbles()
 
         with self.output().open('w') as out:
             out.write('Exito!!!!' + '\n')
