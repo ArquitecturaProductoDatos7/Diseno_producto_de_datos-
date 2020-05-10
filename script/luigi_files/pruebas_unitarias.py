@@ -1,8 +1,54 @@
 import unittest
 import pandas as pd
-import funciones_s3
+import psycopg2
+import datetime
 import marbles.core
 import numpy as np
+import funciones_s3
+import funciones_rds
+
+class TestsForExtract(marbles.core.TestCase):
+    """ 
+    Clase con pruebas de Extract usando marbles:
+    1.- Probar que el número de meses del periodo coincida con los archivos descargados
+    2.- Probar que se descargaron todos los registros del periodo
+    """
+    host = funciones_rds.db_endpoint('db-dpa20')
+    connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
+        
+    def test_check_num_archivos(self):
+        #Numero de meses descargados
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT count(*) FROM raw.metadatos")
+        n_descargados = cursor.fetchone()
+        self.connection.commit()
+        
+        #Numero de meses en el periodo
+        date_start = datetime.date(2014,1,1)
+        date_end = datetime.date(2020,3,1)
+        #date_end = datetime.date.today()
+        dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
+        n_periodo = len(dates)
+        
+        
+        self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
+
+   
+    def test_check_num_registros(self):
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT sum(rows) FROM raw.metadatos")
+        n_rows = cursor.fetchall()
+        self.connection.commit()
+                        
+        cursor.execute("SELECT count(*) FROM raw.IncidentesVialesJSON")
+        n_reg = cursor.fetchall()
+        self.connection.commit()
+        
+        self.assertEqual(n_rows, n_reg, note="El número de registros extraídos y el número de registros cargados no son iguales")
+
+
+
+
 
 class TestClean(marbles.core.TestCase):
     """ 
@@ -29,7 +75,9 @@ class TestClean(marbles.core.TestCase):
         
         self.assertTrue(mes.dtype == np.int64)
         #self.assertTrue(mes.dtype == np.object)  #Con este ejemplo no pasaría la prueba
-        
+    
+    
+    
 class TestFeatureEngineeringMarbles(marbles.core.TestCase):
 
     """ 
