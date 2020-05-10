@@ -10,7 +10,9 @@ import getpass
 import funciones_rds
 import funciones_s3
 import funciones_req
-
+from PruebaUnitTest2 import TestFeatureEngineering1
+#from PruebaUnitTest2_ori import TestFeatureEngineering1
+import marbles.core
 
 class CreaInstanciaRDS(luigi.Task):
     """ Crea la instancia en RDS cuando se tiene el Subnet Group"""
@@ -204,6 +206,33 @@ class ExtraeInfoPrimeraVez(luigi.Task):
     def output(self):
         return luigi.LocalTarget('3.ETL_InsertarDatos.txt')
 
+
+
+
+class TestLoad(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Load"
+     db_instance_id = 'db-dpa20'
+     db_name = 'db_incidentes_cdmx'
+     db_user_name = 'postgres'
+     db_user_password = 'passwordDB'
+     subnet_group = 'subnet_gp_dpa20'
+     security_group = 'sg-09b7d6fd6a0daf19a'
+     host = funciones_rds.db_endpoint(db_instance_id)
+
+
+     def requires(self):
+        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                    self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+     def run(self):
+        prueba_load = TestFeatureEngineering1()
+        prueba_load.test_colum_Incidente_c4_rec_uniques()
+
+        with self.output().open('w') as out:
+            out.write('Exito!!!!' + '\n')
+
+     def output(self):
+        return luigi.LocalTarget("Exito.txt")
 
 
 
