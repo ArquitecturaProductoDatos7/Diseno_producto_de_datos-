@@ -106,3 +106,23 @@ def metadata_para_cleaned(task, status, elim):
     l = [json.dumps(metadata[campo]) for campo in metadata.keys()]
 
     return l
+
+
+def metadata_para_pruebas_unitarias(test, status_test, level):
+    """
+    Genera metadata para las pruebas unitarias
+    """
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    date_time = datetime.datetime.now()
+
+    metadata = {'fecha_de_ejecucion': date_time.strftime("%d/%m/%Y %H:%M:%S"),
+                'ip_address': ip_address,
+                'usuario':  getpass.getuser(),
+                'prueba': test,
+                'prueba_status': status_test,
+                'nivel': level}
+    
+    metadata=pd.DataFrame(metadata,index=[0])
+
+    return metadata
