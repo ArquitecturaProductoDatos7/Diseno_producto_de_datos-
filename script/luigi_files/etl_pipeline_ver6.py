@@ -10,9 +10,8 @@ import getpass
 import funciones_rds
 import funciones_s3
 import funciones_req
-from PruebaUnitTest2 import TestFeatureEngineering1
-#from PruebaUnitTest2_ori import TestFeatureEngineering1
-import marbles.core
+from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
+
 
 class CreaInstanciaRDS(luigi.Task):
     """ Crea la instancia en RDS cuando se tiene el Subnet Group"""
@@ -209,8 +208,8 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
 
 
-class TestLoad(luigi.Task):
-     "Corre las pruebas unitarias para la parte de Load"
+class TestForExtract(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Extract"
      db_instance_id = 'db-dpa20'
      db_name = 'db_incidentes_cdmx'
      db_user_name = 'postgres'
@@ -219,21 +218,39 @@ class TestLoad(luigi.Task):
      security_group = 'sg-09b7d6fd6a0daf19a'
      host = funciones_rds.db_endpoint(db_instance_id)
 
+     bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+     root_path = 'bucket_incidentes_cdmx'
+     folder_path = '0.pruebas_unitarias'
+
 
      def requires(self):
         return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
                                     self.db_user_password, self.subnet_group, self.security_group, self.host)
 
      def run(self):
-        prueba_load = TestFeatureEngineering1()
-        prueba_load.test_colum_Incidente_c4_rec_uniques()
-        prueba_load.test_islower_w_marbles()
+        prueba_extract = TestsForExtract()
+        prueba_extract.test_check_num_archivos()
+        metadatos = funciones_req.metadatos_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract')
+        prueba_extract.test_check_num_registros()
+        metadatos_2 = funciones_req.metadatos_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
+        metadatos.append(metadatos_2)
 
-        with self.output().open('w') as out:
-            out.write('Exito!!!!' + '\n')
+        #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+        #s3_resource = ses.resource('s3')
+        #obj = s3_resource.Bucket(self.bucket)
+
+        with self.output().open('w') as out_file:
+             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
+
 
      def output(self):
-        return luigi.LocalTarget("Exito.txt")
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_EXTRACT.csv")
+
 
 
 
