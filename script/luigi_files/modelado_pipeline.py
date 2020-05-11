@@ -521,7 +521,7 @@ class TestForFeatureEngineering(luigi.Task):
         #s3_resource = ses.resource('s3')
         #obj = s3_resource.Bucket(self.bucket)
         with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
     
     def output(self):
         output_path = "s3://{}/{}/{}/".\
@@ -533,6 +533,51 @@ class TestForFeatureEngineering(luigi.Task):
 
 
 
+class InsertaMetadatosPruebasUnitariasFeatureEngin(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Feature Engineering" 
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+    bucket = 'dpa20-incidentes-cdmx'
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '0.pruebas_unitarias'
+
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()["infile2"].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group,
+                                                                self.security_group, self.host,
+                                                                self.database, self.user, self.password),
+                  "infile2": TestForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
+                                                       self.subnet_group, self.security_group, self.host,
+                                                       self.bucket, self.root_path, self.folder_path)}
+
+                                   
+                                   
 class ModeloRandomForest(luigi.Task):
     """
     Esta tarea ejecuta el modelo de Ranfom Forest con los parametros que recibe luigi y genera el pickle que se guarda en S3
