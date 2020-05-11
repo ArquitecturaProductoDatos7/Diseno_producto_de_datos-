@@ -13,6 +13,7 @@ import funciones_s3
 import funciones_req
 import funciones_mod
 from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
+import pruebas_unitarias
 
 
 
@@ -503,17 +504,17 @@ class TestForFeatureEngineering(luigi.Task):
     
     def run(self):
         
-        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles = pruebas_unitarias.TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec()
-        metadatos=metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
         prueba_feature_engineering_marbles.test_nulls_x_train()
-        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
+        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
             
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas = pruebas_unitarias.TestFeatureEngineeringPandas()
         prueba_feature_engineering_pandas.test_num_columns_x_train()
-        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering'))
+        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering'))
         prueba_feature_engineering_pandas.test_numerical_columns_x_train()
-        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering'))
+        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering'))
         #metadatos=metadatos.reset_index(drop=True)                
                                        
         #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
