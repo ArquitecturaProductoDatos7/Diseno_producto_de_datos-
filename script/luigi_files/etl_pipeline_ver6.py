@@ -358,6 +358,7 @@ class InsertaMetadatosPruebasUnitariasExtract(CopyToTable):
 
 class InsertaMetadatosPruebasUnitariasClean(CopyToTable):  
     "Inserta los metadatos para las pruebas unitarias en Clean" 
+    
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
     subnet_group = 'subnet_gp_dpa20'
@@ -394,7 +395,7 @@ class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
 
     def requires(self):
         return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,self.database, self.user, self.password),
-                  "infile2": (self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
+                  "infile2": TestClean(self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
 
 
 
@@ -584,7 +585,8 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
 
 
 
-class TestForClean(luigi.Task):   
+class TestForClean(luigi.Task): 
+    
     "Corre las pruebas unitarias para la parte de Clean"
     #Parametros
     db_instance_id = luigi.Parameter()
