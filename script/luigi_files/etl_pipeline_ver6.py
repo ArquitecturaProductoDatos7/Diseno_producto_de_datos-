@@ -435,6 +435,48 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
         return  [CreaTablaCleanedIncidentes(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), 
                  FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
                  FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password)]
+    
+    
+    
+class TestForClean(luigi.Task):
+    
+    "Corre las pruebas unitarias para la parte de Clean"
+    
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    host = funciones_rds.db_endpoint(db_instance_id)
+    
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '0.pruebas_unitarias'
+    
+    def requires(self):#########
+        return LimpiaInfoPrimeraVez(self.db_instance_id, self.database, self.user,
+                           self.password, self.subnet_group, self.security_group,self.host)
+    
+    def run(self):
+        
+        prueba_clean_marbles = pruebas_unitarias.TestClean()
+        prueba_clean_marbles.test_islower_w_marbles()
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
+                                   
+        prueba_clean_marbles.test_correct_type()
+        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
+    
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_Clean.csv")
 
 
 
