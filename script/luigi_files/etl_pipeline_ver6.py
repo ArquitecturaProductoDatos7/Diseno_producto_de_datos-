@@ -353,8 +353,48 @@ class InsertaMetadatosPruebasUnitariasExtract(CopyToTable):
                   "infile2": TestForExtract(self.db_instance_id, self.database, self.user, self.password,
                                             self.subnet_group, self.security_group, self.host,
                                             self.bucket, self.root_path, self.folder_path)}
+    
+    
+
+class InsertaMetadatosPruebasUnitariasClean(CopyToTable):  
+    "Inserta los metadatos para las pruebas unitarias en Clean" 
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+    
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '0.pruebas_unitarias'
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()["infile2"].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
 
 
+    def requires(self):
+        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,self.database, self.user, self.password),
+                  "infile2": (self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
 
 
 
@@ -544,23 +584,22 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
 
 
 
-class TestForClean(luigi.Task):
-    
+class TestForClean(luigi.Task):   
     "Corre las pruebas unitarias para la parte de Clean"
+    #Parametros
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
     
-    db_instance_id = 'db-dpa20'
-    db_name = 'db_incidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    host = funciones_rds.db_endpoint(db_instance_id)
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
     
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
-    folder_path = '0.pruebas_unitarias'
-    
-    def requires(self):#########
+    def requires(self):
         return LimpiaInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
                                     self.db_user_password, self.subnet_group, self.security_group,self.host)
     
@@ -583,8 +622,6 @@ class TestForClean(luigi.Task):
                            self.folder_path
                            )
         return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_Clean.csv")
-
-
 
 
 
