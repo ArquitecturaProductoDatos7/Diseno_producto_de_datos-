@@ -230,9 +230,9 @@ class TestForExtract(luigi.Task):
      def run(self):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_archivos()
-        metadatos = funciones_req.metadatos_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract')
         prueba_extract.test_check_num_registros()
-        metadatos_2 = funciones_req.metadatos_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
+        metadatos_2 = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
         metadatos.append(metadatos_2)
 
         #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
