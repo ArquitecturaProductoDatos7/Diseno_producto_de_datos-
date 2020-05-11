@@ -95,6 +95,7 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
         unicos = self.data_procesada['incidente_c4_rec'].nunique()
 
         self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+        #self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5") con este ejemplo no pasaría la prueba
 
     def test_nulls_x_train(self):
         condicion_nulos = self.data_entrenamiento.isnull().sum().all()
