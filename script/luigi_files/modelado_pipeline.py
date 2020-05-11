@@ -480,6 +480,55 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
                              self.bucket, self.root_path)]
 
 
+class TestForFeatureEngineering(luigi.Task):
+    
+    "Corre las pruebas unitarias para la parte de Feature Engineering"
+    
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    host = funciones_rds.db_endpoint(db_instance_id)
+    
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '0.pruebas_unitarias'
+    
+    def requires(self):
+        return DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+                           self.db_user_password, self.subnet_group, self.security_group,
+                           self.bucket, self.root_path)
+    
+    def run(self):
+        
+        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec()
+        metadatos=metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
+        prueba_feature_engineering_marbles.test_nulls_x_train()
+        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
+            
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas.test_num_columns_x_train()
+        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering'))
+        prueba_feature_engineering_pandas.test_numerical_columns_x_train()
+        metadatos=metadatos.append(metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering'))
+        #metadatos=metadatos.reset_index(drop=True)                
+                                       
+        #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+        #s3_resource = ses.resource('s3')
+        #obj = s3_resource.Bucket(self.bucket)
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
+    
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_FE.csv")
 
 
 
