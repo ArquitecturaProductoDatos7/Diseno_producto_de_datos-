@@ -48,7 +48,25 @@ class TestsForExtract(marbles.core.TestCase):
 
 
 
-
+class TestsForLoad(marbles.core.TestCase):
+    """ 
+    Clase con pruebas de Load usando marbles:
+    1.- Probar que el número de columnas del archivo descargado sean 18
+    
+    """
+    host = funciones_rds.db_endpoint('db-dpa20')
+    connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
+        
+    def test_check_num_columnas(self):
+        #Numero de meses descargados
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT DISTINCT (SELECT count(*) FROM json_object_keys(registros)) nbr_keys FROM raw.incidentesvialesjson;")
+        n_cols = cursor.fetchall()
+        self.connection.commit()
+        print("***", n_cols)
+        
+        #self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
+        
 
 class TestClean(marbles.core.TestCase):
     
