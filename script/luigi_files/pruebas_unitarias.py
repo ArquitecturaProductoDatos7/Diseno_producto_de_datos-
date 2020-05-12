@@ -25,8 +25,11 @@ class TestsForExtract(marbles.core.TestCase):
         
         #Numero de meses en el periodo
         date_start = datetime.date(2014,1,1)
-        date_end = datetime.date(2020,3,1)
-        #date_end = datetime.date.today()
+        #date_end = datetime.date(2020,3,1)
+        
+        #Para que falle la prueba
+        date_end = datetime.date.today()
+        
         dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
         n_periodo = len(dates)
         
@@ -39,7 +42,7 @@ class TestsForExtract(marbles.core.TestCase):
         cursor.execute("SELECT sum(rows) FROM raw.metadatos")
         n_rows = cursor.fetchall()
         self.connection.commit()
-                        
+
         cursor.execute("SELECT count(*) FROM raw.IncidentesVialesJSON")
         n_reg = cursor.fetchall()
         self.connection.commit()
@@ -56,7 +59,7 @@ class TestsForLoad(marbles.core.TestCase):
     """
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
-        
+
     def test_check_num_columnas(self):
         #Numero de meses descargados
         cursor = self.connection.cursor()
@@ -64,12 +67,12 @@ class TestsForLoad(marbles.core.TestCase):
         n_cols = cursor.fetchall()
         self.connection.commit()
         print("***", n_cols)
-        
+
         #self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
-        
+
+
 
 class TestClean(marbles.core.TestCase):
-    
     """ 
     Clase para ejecutar las pruebas unitarias en la etapa clean
     1.- Probar que la columna delegacion_inicio de la base de datos *cleaned* 
@@ -84,12 +87,14 @@ class TestClean(marbles.core.TestCase):
         column1 = self.data['delegacion_inicio']
 
         self.assertTrue(column1.str.islower().all())
-    
+
     def test_correct_type(self):
         mes=self.data['mes']
-        
-        self.assertTrue(mes.dtype == np.int64)
-        #self.assertTrue(mes.dtype == np.object)  #Con este ejemplo no pasaría la prueba
+
+        #self.assertTrue(mes.dtype == np.int64, msg="El tipo de variable no es el correcto")
+
+        #Con este ejemplo no pasaría la prueba
+        self.assertTrue(mes.dtype == np.object, msg="El tipo de variable no es el correcto")
     
     
     
@@ -109,8 +114,10 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     def test_uniques_incidente_c4_rec(self):
         unicos = self.data_procesada['incidente_c4_rec'].nunique()
 
-        self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
-        #self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5") con este ejemplo no pasaría la prueba
+        #self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+        
+        #con este ejemplo no pasaría la prueba
+        self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
     def test_nulls_x_train(self):
         condicion_nulos = self.data_entrenamiento.isnull().sum().all()

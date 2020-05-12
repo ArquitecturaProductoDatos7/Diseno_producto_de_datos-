@@ -744,8 +744,10 @@ class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
 
 
     def requires(self):
-        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,self.database, self.user, self.password),
-                  "infile2": TestClean(self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
+        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, 
+                                                                self.host,self.database, self.user, self.password),
+                  "infile2": TestForClean(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database,
+                                       self.user, self.password, self.bucket, self.root_path, self.folder_path)}
 
 
 

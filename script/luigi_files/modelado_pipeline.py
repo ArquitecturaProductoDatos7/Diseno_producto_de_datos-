@@ -12,8 +12,8 @@ import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
-from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost
-import pruebas_unitarias
+from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost, CreaTablaPruebasUnitariasMetadatos
+from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
 
 
@@ -485,17 +485,17 @@ class TestForFeatureEngineering(luigi.Task):
     
     "Corre las pruebas unitarias para la parte de Feature Engineering"
     
-    db_instance_id = 'db-dpa20'
-    db_name = 'db_incidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    host = funciones_rds.db_endpoint(db_instance_id)
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
     
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
-    folder_path = '0.pruebas_unitarias'
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
     
     def requires(self):
         return DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
@@ -504,22 +504,22 @@ class TestForFeatureEngineering(luigi.Task):
     
     def run(self):
         
-        prueba_feature_engineering_marbles = pruebas_unitarias.TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
         prueba_feature_engineering_marbles.test_nulls_x_train()
-        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
+        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering'))
             
-        prueba_feature_engineering_pandas = pruebas_unitarias.TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
         prueba_feature_engineering_pandas.test_num_columns_x_train()
         metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering'))
         prueba_feature_engineering_pandas.test_numerical_columns_x_train()
         metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering'))
         #metadatos=metadatos.reset_index(drop=True)                
                                        
-        #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
-        #s3_resource = ses.resource('s3')
-        #obj = s3_resource.Bucket(self.bucket)
+        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+        s3_resource = ses.resource('s3')
+        obj = s3_resource.Bucket(self.bucket)
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
     
@@ -573,7 +573,7 @@ class InsertaMetadatosPruebasUnitariasFeatureEngin(CopyToTable):
                                                                 self.security_group, self.host,
                                                                 self.database, self.user, self.password),
                   "infile2": TestForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
-                                                       self.subnet_group, self.security_group, self.host,
+                                                       self.subnet_group, self.security_group,self.host, 
                                                        self.bucket, self.root_path, self.folder_path)}
 
                                    
