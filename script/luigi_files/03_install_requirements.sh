@@ -10,6 +10,7 @@ pip3 install sklearn
 pip3 install sklearn_pandas
 pip3 install sqlalchemy
 pip3 install marbles
+pip3 install unittest2
 
 
 sudo apt install awscli
