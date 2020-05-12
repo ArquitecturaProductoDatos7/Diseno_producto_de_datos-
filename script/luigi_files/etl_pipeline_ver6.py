@@ -354,26 +354,64 @@ class InsertaMetadatosPruebasUnitariasExtract(CopyToTable):
                                             self.subnet_group, self.security_group, self.host,
                                             self.bucket, self.root_path, self.folder_path)}
     
+
+  
+class TestForLoad(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Load"
+     db_instance_id = luigi.Parameter()
+     subnet_group = luigi.Parameter()
+     security_group = luigi.Parameter()
+
+     #Para conectarse a la base
+     host = luigi.Parameter()
+     db_name = luigi.Parameter()
+     db_user_name = luigi.Parameter()
+     db_user_password = luigi.Parameter()
+
+     bucket = luigi.Parameter()
+     root_path = luigi.Parameter()
+     folder_path = luigi.Parameter()
+
+
+     def requires(self):
+        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                    self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+     def run(self):
+        prueba_load = TestsForLoad()
+        prueba_load.test_check_num_columnas()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_columnas', 'SUCCESS', 'load')
+        
+        with self.output().open('w') as out_file:
+             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+
+     def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_LOAD.csv")
     
 
-class InsertaMetadatosPruebasUnitariasClean(CopyToTable):  
-    "Inserta los metadatos para las pruebas unitarias en Clean" 
-    
+
+class InsertaMetadatosPruebasUnitariasLoad(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Extract" 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
     subnet_group = 'subnet_gp_dpa20'
     security_group = 'sg-09b7d6fd6a0daf19a'
-    
     # Para condectarse a la Base
     database = 'db_incidentes_cdmx'
     user = 'postgres'
     password = 'passwordDB'
     host = funciones_rds.db_endpoint(db_instance_id)
-    
-    #Parametros del bucket
+
     bucket = 'dpa20-incidentes-cdmx'
     root_path = 'bucket_incidentes_cdmx'
     folder_path = '0.pruebas_unitarias'
+
 
     # Nombre de la tabla a insertar
     table = 'tests.pruebas_unitarias'
@@ -394,12 +432,17 @@ class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
 
 
     def requires(self):
-        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,self.database, self.user, self.password),
-                  "infile2": TestClean(self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
+        return  { "infile1": InsertaMetadatosPruebasUnitariasExtract(),
+                  "infile2": TestForExtract(self.db_instance_id, self.database, self.user, self.password,
+                                            self.subnet_group, self.security_group, self.host,
+                                            self.bucket, self.root_path, self.folder_path)}
+    
 
-
-
-
+    
+    
+    
+    
+    
 class CreaEsquemaCLEANED(PostgresQuery):
     "Crea el esquema CLEANED dentro de la base"
     #Para la creacion de la base
@@ -662,6 +705,53 @@ class InsertaMetadatosCLEANED(luigi.Task):
 
 
 
+    
+class InsertaMetadatosPruebasUnitariasClean(CopyToTable):  
+    "Inserta los metadatos para las pruebas unitarias en Clean" 
+    
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+    
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '0.pruebas_unitarias'
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         with self.input()["infile2"].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,self.database, self.user, self.password),
+                  "infile2": TestClean(self.db_instance_id,self.subnet_group,self.security_group,self.database, self.user, self.password,self.host,self.bucket, self.root_path, self.folder_path)}
+
+
+
+
+
+    
 
 
 class ETLpipeline(luigi.Task):
