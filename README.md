@@ -90,6 +90,17 @@ Para medir el desempeño del modelo nos enfocaremos en la métrica **"Precision"
 
 De igual manera, es importante mencionar que el producto de datos sólo es una herramienta adicional que será proporcionada al tomador de decisiones del C5 (por ejemplo un supervisor), el cual se apoyará del producto de datos con la lista de probabilidades priorizadas, pero éste último es el que tomará la decisión si mandar el recurso o no (o el tipo de recurso) al área solicitada.
 
+### 5. *Bias y Fairness*
+
+##### 5.1 Atributo Protegido
+
+El producto de datos desarrollado para el C5, tiene como objetivo etiquetar las llamadas entrantes al centrol de control con una probabilidad asignada determinada con un modelo de predicción. De acuerdo a la base de datos se decidió tomar como atributo protegido la variable *delegación_inicio*, y se elige esta variable porque queremos evitar un sesgo socioeconómico, en el sentido de que las delegaciones de la Cuidad de México son heterogéneas ya que pueden ser distintas por su nivel de infraestructura, características de su población o su ubicación. Y justamente lo que queremos evitar es que existan delegaciones marginadas o no atendidas por el simple hecho de tener atributos que la beneficien en comparación con otras.
+
+##### 5.1 Métrica de *fairness*
+
+La métrica para controlar el *fariness* de nuestro modelo es **FN/GN Parity** debido a que el C5 busca abarcar la mayor parte de la población de la cuidad de México y se cataloga como servicio de asistencia porque justamente se busca proporcionar algun servicio de emergencia a ciertos individuos. Debido a esto, el objetivo del producto de datos se sitúa en dar asistenica a *personas levantan el reporte(comunicandose al centro del control) y al mismo tiempo se espera que estas personas que se comunicaron realmente necesiten el servicio solicitado*, dado que sólo con la llamada telefónica el C5 se entera de la situación y puede mandar el recurso al lugar reportado.
+
+
 ## Referencias
 
 C5:
