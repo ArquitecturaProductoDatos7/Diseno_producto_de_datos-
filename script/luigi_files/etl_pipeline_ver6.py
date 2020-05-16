@@ -264,7 +264,7 @@ class ExtraeInfoPrimeraVez(luigi.Task):
 
 
 
-class TestForExtract(luigi.Task):
+class Test1ForExtract(luigi.Task):
      "Corre las pruebas unitarias para la parte de Extract"
      db_instance_id = luigi.Parameter()
      subnet_group = luigi.Parameter()
@@ -289,13 +289,6 @@ class TestForExtract(luigi.Task):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_archivos()
         metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract')
-        prueba_extract.test_check_num_registros()
-        metadatos_2 = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
-        metadatos = metadatos.append(metadatos_2)
-
-        #ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
-        #s3_resource = ses.resource('s3')
-        #obj = s3_resource.Bucket(self.bucket)
 
         with self.output().open('w') as out_file:
              metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -307,7 +300,46 @@ class TestForExtract(luigi.Task):
                              self.root_path,
                              self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_EXTRACT.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_EXTRACT.csv")
+
+
+class Test2ForExtract(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Extract"
+     db_instance_id = luigi.Parameter()
+     subnet_group = luigi.Parameter()
+     security_group = luigi.Parameter()
+
+     #Para conectarse a la base
+     host = luigi.Parameter()
+     db_name = luigi.Parameter()
+     db_user_name = luigi.Parameter()
+     db_user_password = luigi.Parameter()
+
+     bucket = luigi.Parameter()
+     root_path = luigi.Parameter()
+     folder_path = luigi.Parameter()
+
+
+     def requires(self):
+        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
+                                    self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+     def run(self):
+        prueba_extract = TestsForExtract()
+        prueba_extract.test_check_num_registros()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
+
+        with self.output().open('w') as out_file:
+             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+
+     def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_EXTRACT.csv")
 
 
 
@@ -342,107 +374,28 @@ class InsertaMetadatosPruebasUnitariasExtract(CopyToTable):
 
     def rows(self):
          #Leemos el df de metadatos
-         with self.input()["infile2"].open('r') as infile:
-              for line in infile:
-                  yield line.strip("\n").split("\t")
+         for file in ["infile2", "infile3"]:
+              with self.input()[file].open('r') as infile:
+                  for line in infile:
+                      yield line.strip("\n").split("\t")
+
 
 
     def requires(self):
         return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
                                                    self.database, self.user, self.password),
-                  "infile2": TestForExtract(self.db_instance_id, self.database, self.user, self.password,
+                  "infile2": Test1ForExtract(self.db_instance_id, self.database, self.user, self.password,
+                                            self.subnet_group, self.security_group, self.host,
+                                            self.bucket, self.root_path, self.folder_path),
+                  "infile3": Test2ForExtract(self.db_instance_id, self.database, self.user, self.password,
                                             self.subnet_group, self.security_group, self.host,
                                             self.bucket, self.root_path, self.folder_path)}
-    
-
-  
-class TestForLoad(luigi.Task):
-     "Corre las pruebas unitarias para la parte de Load"
-     db_instance_id = luigi.Parameter()
-     subnet_group = luigi.Parameter()
-     security_group = luigi.Parameter()
-
-     #Para conectarse a la base
-     host = luigi.Parameter()
-     db_name = luigi.Parameter()
-     db_user_name = luigi.Parameter()
-     db_user_password = luigi.Parameter()
-
-     bucket = luigi.Parameter()
-     root_path = luigi.Parameter()
-     folder_path = luigi.Parameter()
 
 
-     def requires(self):
-        return ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
-                                    self.db_user_password, self.subnet_group, self.security_group, self.host)
-
-     def run(self):
-        prueba_load = TestsForLoad()
-        prueba_load.test_check_num_columnas()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_columnas', 'SUCCESS', 'load')
-        
-        with self.output().open('w') as out_file:
-             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
 
 
-     def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                      format(self.bucket,
-                             self.root_path,
-                             self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_LOAD.csv")
-    
 
 
-class InsertaMetadatosPruebasUnitariasLoad(CopyToTable):
-    "Inserta los metadatos para las pruebas unitarias en Extract" 
-    # Parametros del RDS
-    db_instance_id = 'db-dpa20'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    # Para condectarse a la Base
-    database = 'db_incidentes_cdmx'
-    user = 'postgres'
-    password = 'passwordDB'
-    host = funciones_rds.db_endpoint(db_instance_id)
-
-    bucket = 'dpa20-incidentes-cdmx'
-    root_path = 'bucket_incidentes_cdmx'
-    folder_path = '0.pruebas_unitarias'
-
-
-    # Nombre de la tabla a insertar
-    table = 'tests.pruebas_unitarias'
-
-    # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("fecha_ejecucion", "VARCHAR"),
-             ("ip_address", "VARCHAR"),
-             ("usuario", "VARCHAR"),
-             ("test", "VARCHAR"),
-             ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
-
-    def rows(self):
-         #Leemos el df de metadatos
-         with self.input()["infile2"].open('r') as infile:
-              for line in infile:
-                  yield line.strip("\n").split("\t")
-
-
-    def requires(self):
-        return  { "infile1": InsertaMetadatosPruebasUnitariasExtract(),
-                  "infile2": TestForExtract(self.db_instance_id, self.database, self.user, self.password,
-                                            self.subnet_group, self.security_group, self.host,
-                                            self.bucket, self.root_path, self.folder_path)}
-    
-
-    
-    
-    
-    
-    
 class CreaEsquemaCLEANED(PostgresQuery):
     "Crea el esquema CLEANED dentro de la base"
     #Para la creacion de la base
@@ -622,51 +575,9 @@ class LimpiaInfoPrimeraVez(PostgresQuery):
         # Indica que se debe hacer primero las tareas especificadas aqui
         return  [CreaTablaCleanedIncidentes(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), 
                  FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
-                 FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password)]
+                 FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+                 InsertaMetadatosPruebasUnitariasExtract()]
 
-
-
-
-
-class TestForClean(luigi.Task): 
-    
-    "Corre las pruebas unitarias para la parte de Clean"
-    #Parametros
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    host = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-    folder_path = luigi.Parameter()
-    
-    def requires(self):
-        return LimpiaInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
-                                    self.db_user_password, self.subnet_group, self.security_group,self.host)
-    
-    def run(self):
-        
-        prueba_clean_marbles = TestClean()
-        prueba_clean_marbles.test_islower_w_marbles()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
-                                   
-        prueba_clean_marbles.test_correct_type()
-        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean'))
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-    
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                    format(self.bucket,
-                           self.root_path,
-                           self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_Clean.csv")
 
 
 
@@ -705,21 +616,97 @@ class InsertaMetadatosCLEANED(luigi.Task):
 
 
 
-    
-class InsertaMetadatosPruebasUnitariasClean(CopyToTable):  
-    "Inserta los metadatos para las pruebas unitarias en Clean" 
-    
+
+class Test1ForClean(luigi.Task): 
+    "Corre las pruebas unitarias para la parte de Clean"
+    #Parametros
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosCLEANED(self.db_instance_id, self.db_name, self.db_user_name,
+                                       self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+    def run(self):
+        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles.test_islower_w_marbles()
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_CLEAN.csv")
+
+
+
+
+
+class Test2ForClean(luigi.Task): 
+    "Corre las pruebas unitarias para la parte de Clean"
+    #Parametros
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosCLEANED(self.db_instance_id, self.db_name, self.db_user_name,
+                                       self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+    def run(self):
+        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles.test_correct_type()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas2_CLEAN.csv")
+
+
+
+
+class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Clean"
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
     subnet_group = 'subnet_gp_dpa20'
     security_group = 'sg-09b7d6fd6a0daf19a'
-    
+
     # Para condectarse a la Base
     database = 'db_incidentes_cdmx'
     user = 'postgres'
     password = 'passwordDB'
     host = funciones_rds.db_endpoint(db_instance_id)
-    
+
     #Parametros del bucket
     bucket = 'dpa20-incidentes-cdmx'
     root_path = 'bucket_incidentes_cdmx'
@@ -738,53 +725,22 @@ class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
 
     def rows(self):
          #Leemos el df de metadatos
-         with self.input()["infile2"].open('r') as infile:
-              for line in infile:
-                  yield line.strip("\n").split("\t")
+         for file in ["infile1", "infile2"]:
+              with self.input()[file].open('r') as infile:
+                  for line in infile:
+                      yield line.strip("\n").split("\t")
 
 
     def requires(self):
-        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group, self.security_group, 
-                                                                self.host,self.database, self.user, self.password),
-                  "infile2": TestForClean(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database,
+        return  { "infile1": Test1ForClean(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database,
+                                       self.user, self.password, self.bucket, self.root_path, self.folder_path),
+                  "infile2": Test2ForClean(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database,
                                        self.user, self.password, self.bucket, self.root_path, self.folder_path)}
 
 
 
 
 
-    
-
-
-class ETLpipeline(luigi.Task):
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-
-
-    date = datetime.date.today()
-    def requires(self):
-        yield ObtieneRDSHost(self.db_instance_id, self.db_name, self.db_user_name,
-                             self.db_user_password, self.subnet_group, self.security_group)
-
-        host = funciones_rds.db_endpoint(self.db_instance_id)
-        yield ExtraeInfoPrimeraVez(self.db_instance_id, self.db_name, self.db_user_name,
-                                   self.db_user_password, self.subnet_group, self.security_group, host)
-
-        yield InsertaMetadatosCLEANED(self.db_instance_id, self.db_name, self.db_user_name,
-                                      self.db_user_password, self.subnet_group, self.security_group, host)
-
-
-    def run(self):
-        with self.output().open('w') as out_file:
-            out_file.write("ETL exitoso, corrido el {}".format(self.date))
-
-
-    def output(self):
-        return luigi.LocalTarget("5.ETL_Exitoso.txt")
 
 
 

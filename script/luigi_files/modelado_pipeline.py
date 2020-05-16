@@ -12,7 +12,7 @@ import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
-from etl_pipeline_ver6 import ETLpipeline, ObtieneRDSHost, CreaTablaPruebasUnitariasMetadatos
+from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
 
@@ -37,7 +37,8 @@ class CreaEsquemaProcesamiento(PostgresQuery):
         return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
                               self.password, self.subnet_group, self.security_group)
 
-    
+
+
 
 class CreaEsquemaModelo(PostgresQuery):
     "Crea el esquema Modelo dentro de la base"
@@ -190,8 +191,7 @@ class PreprocesoBase(luigi.Task):
     file_name = 'base_procesada'
 
     def requires(self):
-       return [ETLpipeline(self.db_instance_id , self.db_name, self.db_user_name,
-                          self.db_user_password, self.subnet_group, self.security_group),
+       return [InsertaMetadatosPruebasUnitariasClean(),
                CreaBucket(self.bucket)]
 
     def run(self):
@@ -481,10 +481,9 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
                              self.bucket, self.root_path)]
 
 
-class TestForFeatureEngineering(luigi.Task):
-    
+class Test1ForFeatureEngineering(luigi.Task):
     "Corre las pruebas unitarias para la parte de Feature Engineering"
-    
+
     db_instance_id = luigi.Parameter()
     db_name = luigi.Parameter()
     db_user_name = luigi.Parameter()
@@ -492,44 +491,149 @@ class TestForFeatureEngineering(luigi.Task):
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
     host = luigi.Parameter()
-    
+
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
     folder_path = luigi.Parameter()
-    
+
     def requires(self):
-        return DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
-                           self.db_user_password, self.subnet_group, self.security_group,
-                           self.bucket, self.root_path)
-    
+        return InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
+                                          self.db_user_password, self.subnet_group, self.security_group,
+                                          self.host, self.bucket, self.root_path)
+
     def run(self):
-        
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
-        prueba_feature_engineering_marbles.test_nulls_x_train()
-        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering'))
-            
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
-        prueba_feature_engineering_pandas.test_num_columns_x_train()
-        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering'))
-        prueba_feature_engineering_pandas.test_numerical_columns_x_train()
-        metadatos=metadatos.append(funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering'))
-        #metadatos=metadatos.reset_index(drop=True)                
-                                       
-        ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
-        s3_resource = ses.resource('s3')
-        obj = s3_resource.Bucket(self.bucket)
+
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-    
+
     def output(self):
         output_path = "s3://{}/{}/{}/".\
                     format(self.bucket,
                            self.root_path,
                            self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas_unitarias_FE.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_FE.csv")
+
+
+class Test2ForFeatureEngineering(luigi.Task):
+    "Corre las pruebas unitarias para la parte de Feature Engineering"
+
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
+                                          self.db_user_password, self.subnet_group, self.security_group,
+                                          self.host, self.bucket, self.root_path)
+    def run(self):
+        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles.test_nulls_x_train()
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_FE.csv")
+
+
+
+class Test3ForFeatureEngineering(luigi.Task):
+    "Corre las pruebas unitarias para la parte de Feature Engineering"
+
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
+                                          self.db_user_password, self.subnet_group, self.security_group,
+                                          self.host, self.bucket, self.root_path)
+
+    def run(self):
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas.test_num_columns_x_train()
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba3_FE.csv")
+
+
+
+
+
+class Test4ForFeatureEngineering(luigi.Task):
+    "Corre las pruebas unitarias para la parte de Feature Engineering"
+
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosFeatuEngin(self.db_instance_id, self.db_name, self.db_user_name,
+                                          self.db_user_password, self.subnet_group, self.security_group,
+                                          self.host, self.bucket, self.root_path)
+
+    def run(self):
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas.test_numerical_columns_x_train()
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas4_FE.csv")
+
+
+
+
 
 
 
@@ -562,22 +666,30 @@ class InsertaMetadatosPruebasUnitariasFeatureEngin(CopyToTable):
              ("level", "VARCHAR")]
 
     def rows(self):
-         #Leemos el df de metadatos
-         with self.input()["infile2"].open('r') as infile:
-              for line in infile:
-                  yield line.strip("\n").split("\t")
+         for file in ["infile1", "infile2", "infile3", "infile4"]:
+             #Leemos el df de metadatos
+             with self.input()[file].open('r') as infile:
+                  for line in infile:
+                      yield line.strip("\n").split("\t")
 
 
     def requires(self):
-        return  { "infile1": CreaTablaPruebasUnitariasMetadatos(self.db_instance_id, self.subnet_group,
-                                                                self.security_group, self.host,
-                                                                self.database, self.user, self.password),
-                  "infile2": TestForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
+        return  { "infile1": Test1ForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
+                                                       self.subnet_group, self.security_group,self.host,
+                                                       self.bucket, self.root_path, self.folder_path),
+                  "infile2": Test2ForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
+                                                       self.subnet_group, self.security_group,self.host, 
+                                                       self.bucket, self.root_path, self.folder_path),
+                  "infile3": Test3ForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
+                                                       self.subnet_group, self.security_group,self.host, 
+                                                       self.bucket, self.root_path, self.folder_path),
+                  "infile4": Test4ForFeatureEngineering(self.db_instance_id, self.database, self.user, self.password,
                                                        self.subnet_group, self.security_group,self.host, 
                                                        self.bucket, self.root_path, self.folder_path)}
 
-                                   
-                                   
+
+
+
 class ModeloRandomForest(luigi.Task):
     """
     Esta tarea ejecuta el modelo de Ranfom Forest con los parametros que recibe luigi y genera el pickle que se guarda en S3
@@ -614,7 +726,8 @@ class ModeloRandomForest(luigi.Task):
 
        return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
                                       self.db_user_password, self.subnet_group, self.security_group,
-                                      self.bucket, self.root_path)}
+                                      self.bucket, self.root_path),
+               'infiles2': InsertaMetadatosPruebasUnitariasFeatureEngin()}
 
 
     def run(self):
