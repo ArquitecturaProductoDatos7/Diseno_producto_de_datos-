@@ -629,7 +629,7 @@ class Test4ForFeatureEngineering(luigi.Task):
                            self.root_path,
                            self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_pruebas4_FE.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba4_FE.csv")
 
 
 
