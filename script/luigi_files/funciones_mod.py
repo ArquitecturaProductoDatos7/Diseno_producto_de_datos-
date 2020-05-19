@@ -8,7 +8,9 @@ from sklearn_pandas import CategoricalImputer
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
 import pickle
+
 
 
 def preprocesamiento_variable(df):
@@ -50,6 +52,24 @@ def separa_train_y_test(df, vars_mod, var_obj):
 
 
 
+def elimina_na_de_variable_delegacion(df):
+    """ Esta funcion elimina los registros que tienen na para la varible 'delegacion_inicio',
+      siempre y cuando el numero de registros a eliminar representen el 3% del total o menos """
+
+    LIMIT_PERCENT = 0.03
+
+    #Para el set de entrenamiento
+    a_borrar = df[df['delegacion_inicio']=='na'].index
+    if len(a_borrar) != 0:
+       if len(a_borrar)/len(df) < LIMIT_PERCENT:
+            df.drop(a_borrar , inplace=True)
+       else:
+            print("***** Los registros con 'na' son {}% *****\n*****No se borro nada *****".format( len(a_borrar)/len(df) ))
+
+    return df
+
+
+
 
 
 def imputacion_variable_delegacion(X_train, X_test):
@@ -66,6 +86,8 @@ def imputacion_variable_delegacion(X_train, X_test):
 
 
     return X_train, X_test
+
+
 
 
 

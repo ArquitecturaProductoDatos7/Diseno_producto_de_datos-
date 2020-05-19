@@ -15,28 +15,29 @@ class TestsForExtract(marbles.core.TestCase):
     """
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
-        
+
     def test_check_num_archivos(self):
         #Numero de meses descargados
         cursor = self.connection.cursor()
         cursor.execute("SELECT count(*) FROM raw.metadatos")
         n_descargados = cursor.fetchone()
         self.connection.commit()
-        
+
         #Numero de meses en el periodo
         date_start = datetime.date(2014,1,1)
-        #date_end = datetime.date(2020,3,1)
-        
+        date_end = datetime.date(2020,3,1)
+
         #Para que falle la prueba
-        date_end = datetime.date.today()
-        
+        #date_end = datetime.date.today()
+
         dates = pd.period_range(start=str(date_start), end=str(date_end), freq='M')
         n_periodo = len(dates)
-        
-        
+
+
         self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
 
-   
+
+
     def test_check_num_registros(self):
         cursor = self.connection.cursor()
         cursor.execute("SELECT sum(rows) FROM raw.metadatos")
@@ -46,7 +47,7 @@ class TestsForExtract(marbles.core.TestCase):
         cursor.execute("SELECT count(*) FROM raw.IncidentesVialesJSON")
         n_reg = cursor.fetchall()
         self.connection.commit()
-        
+
         self.assertEqual(n_rows, n_reg, note="El número de registros extraídos y el número de registros cargados no son iguales")
 
 
@@ -55,7 +56,6 @@ class TestsForLoad(marbles.core.TestCase):
     """ 
     Clase con pruebas de Load usando marbles:
     1.- Probar que el número de columnas del archivo descargado sean 18
-    
     """
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
@@ -91,15 +91,15 @@ class TestClean(marbles.core.TestCase):
     def test_correct_type(self):
         mes=self.data['mes']
 
-        #self.assertTrue(mes.dtype == np.int64, msg="El tipo de variable no es el correcto")
+        self.assertTrue(mes.dtype == np.int64, msg="El tipo de variable no es el correcto")
 
         #Con este ejemplo no pasaría la prueba
-        self.assertTrue(mes.dtype == np.object, msg="El tipo de variable no es el correcto")
-    
-    
-    
-class TestFeatureEngineeringMarbles(marbles.core.TestCase):
+        #self.assertTrue(mes.dtype == np.object, msg="El tipo de variable no es el correcto")
 
+
+
+
+class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     """ 
     Clase con pruebas de feature engineering usando marbles:
     1.- Probar que el número de categorías en la variable incidente_c4_rec sea 5, ya que así se reclasificó
@@ -107,53 +107,47 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     """
 
     data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
-    
-    data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.Imputaciones/X_train.csv')
-    
-    
+
+    data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
+
     def test_uniques_incidente_c4_rec(self):
         unicos = self.data_procesada['incidente_c4_rec'].nunique()
 
-        #self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
-        
+        self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+
         #con este ejemplo no pasaría la prueba
-        self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+        #self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
     def test_nulls_x_train(self):
         condicion_nulos = self.data_entrenamiento.isnull().sum().all()
 
         self.assertTrue(condicion_nulos==0)
-        
+
+
 
 class TestFeatureEngineeringPandas(unittest.TestCase):
-    
     """ 
     Clase con pruebas de feature engineering usando marbles y pandas:
     1.- Probar que el número de columnas en el set de entrenamiento después de hacer el one hote encoder sea igual al número de categorías de cada variable categórica, más las variables numéricas.
     2.- Probar que todas las variables sean numericas en el set de entrenamiento.
     """
-     
-    data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.Imputaciones/X_train.csv')
-    
-    
-    data_entrenamiento_despues_OneHoteEncoder=funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_train_input.csv')
-    
+
+    data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
+
+    data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_train_input.csv')
 
     def test_num_columns_x_train(self):
         lista_variables_categoricas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include =
                                                                                                'object').columns.values
         archivo_variables_categoricas = self.data_entrenamiento_antes_OneHoteEncoder.loc[:, lista_variables_categoricas]
         categorias_total=archivo_variables_categoricas.nunique().sum()
-        
+
         lista_variables_numericas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include =
                                                                                              'number').columns.values
         total_columnas=len(lista_variables_numericas)+categorias_total
-        
         total_columnas_despues_OneHoteEncoder=len(self.data_entrenamiento_despues_OneHoteEncoder.columns.values)
-        
+
         self.assertEqual(total_columnas, total_columnas_despues_OneHoteEncoder)
-        
+
     def test_numerical_columns_x_train(self):
-        
         pd.api.types.is_numeric_dtype(self.data_entrenamiento_despues_OneHoteEncoder.values)
-        
