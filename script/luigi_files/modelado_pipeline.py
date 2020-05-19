@@ -199,6 +199,7 @@ class PreprocesoBase(luigi.Task):
 
        dataframe = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
        dataframe = funciones_mod.preprocesamiento_variable(dataframe)
+       dataframe =  funciones_mod.elimina_na_de_variable_delegacion(dataframe)
 
        #print("Df que vamos a guardar\n",dataframe.head())
 
@@ -306,7 +307,7 @@ class ImputacionesBase(luigi.Task):
     root_path = luigi.Parameter()
 
     #Para la tarea actual
-    folder_path = '3.Imputaciones'
+    folder_path = '3.imputaciones'
 
     def requires(self):
 
@@ -434,6 +435,7 @@ class InsertaMetadatosFeatuEngin(CopyToTable):
     password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group =  luigi.Parameter()
+#    host = 'db-dpa20.clkxxfkka82h.us-east-1.rds.amazonaws.com'
     host =  luigi.Parameter()
     # Parametros del Bucket
     bucket = luigi.Parameter()
@@ -884,7 +886,7 @@ class ModeloXGB(luigi.Task):
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '5.modelo'
-    fname = "" 
+    fname = ''
 
     def requires(self):
 
@@ -908,11 +910,14 @@ class ModeloXGB(luigi.Task):
        hyper_params_grid= {'n_estimators': [self.n_estimators],'learning_rate':[self.learning_rate],
                           'subsample':[self.subsample], 'max_depth':[self.max_depth]}
 
+
+       self.fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
+       print("*****************\n", self.fname)
+
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_XGB(X_train_input, y_train, hyper_params_grid)
 
-       self.fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
        metadata = funciones_mod.completa_metadatos_modelo(metadata, self.fname)
 
        #Se guardan los archivos
@@ -933,7 +938,7 @@ class ModeloXGB(luigi.Task):
                              self.folder_path,
                             )
 
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata_xgb'+self.fname+'.csv')
+       return luigi.contrib.s3.S3Target(path = output_path + 'metadata_xgb' + self.fname + '.csv')
 
 
 
@@ -1064,7 +1069,7 @@ class InsertaMetadatosRegresion(CopyToTable):
 
     def requires(self):
         return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
-                                          self.database, self.user, self.password),
+                                                      self.database, self.user, self.password),
                  'infile2' : ModeloRegresion(self.penalty, self.c_param)}
 
 
@@ -1078,6 +1083,7 @@ class InsertaMetadatosXGB(CopyToTable):
     learning_rate=luigi.FloatParameter()
     subsample=luigi.FloatParameter()
     max_depth=luigi.IntParameter()
+
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'
@@ -1101,9 +1107,9 @@ class InsertaMetadatosXGB(CopyToTable):
              ("archivo_metadatos", "VARCHAR"),
              ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
-             ("mean_score_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
              ("params", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -1121,15 +1127,13 @@ class InsertaMetadatosXGB(CopyToTable):
 
     def rows(self):
          #Leemos el df de metadatos
-         with self.input()['infile2'].open('r') as infile:
+         with self.input()['infile'].open('r') as infile:
               for line in infile:
                   yield line.strip("\n").split("\t")
 
 
     def requires(self):
-        return  {'infile1' : CreaTablaModeloMetadatos(self.db_instance_id, self.subnet_group, self.security_group, self.host,
-                                          self.database, self.user, self.password),
-                 'infile2' : ModeloXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
+        return  {'infile' : ModeloXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth)}
 
 
 
@@ -1141,25 +1145,25 @@ class CorreModelos(luigi.task.WrapperTask):
     Esta tarrea corre 3 modelos (Random Forest, Regresion Logistica, XGBoost) con diferentes parametros
     """
     #Parametros del modelo random forest
-    n_estimators_rf = [100, 500] #luigi.IntParameter()
-    max_depth_rf = [20, 50, 100] #luigi.IntParameter()
-    max_features = ["sqrt", "log2"] #luigi.Parameter()
-    min_samples_split = [10, 25, 50] #luigi.IntParameter()
-    min_samples_leaf = [5, 10, 20]
+    n_estimators_rf = [100] #luigi.IntParameter()
+    max_depth_rf = [50, 100] #luigi.IntParameter()
+    max_features = ["sqrt"] #luigi.Parameter()
+    min_samples_split = [10, 25] #luigi.IntParameter()
+    min_samples_leaf = [10, 20]
     #Regresion logistica
     penalty = ['l1', 'l2']
-    c_param = [1, 1.5]
+    c_param = [0.5, 1, 1.5]
     #XGBoost
-    n_estimators = [100, 500] #luigi.IntParameter()
-    learning_rate = [0.25, 0.5] #luigi.FloatParameter()
+    n_estimators = [1] #luigi.IntParameter()
+    learning_rate = [0.25] #luigi.FloatParameter()
     subsample = [1]  #luigi.FloatParameter()
-    max_depth = [20, 50, 100] #luigi.IntParameter()
+    max_depth = [10,15] #luigi.IntParameter()
 
 
     def requires(self):
-        yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_features] for l in self.min_samples_split] for m in self.min_samples_leaf]
-#        yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
-#        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
+        #yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_features] for l in self.min_samples_split] for m in self.min_samples_leaf]
+        #yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
+        return [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
 
 
 
@@ -1260,4 +1264,5 @@ class PrediccionesConMejorModelo(luigi.Task):
                              self.folder_path_predicciones,
                             )
         return luigi.contrib.s3.S3Target(path=output_path+'predicciones.csv')
+
 
