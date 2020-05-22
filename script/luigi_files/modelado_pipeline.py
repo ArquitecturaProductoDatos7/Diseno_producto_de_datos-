@@ -1145,25 +1145,25 @@ class CorreModelos(luigi.task.WrapperTask):
     Esta tarrea corre 3 modelos (Random Forest, Regresion Logistica, XGBoost) con diferentes parametros
     """
     #Parametros del modelo random forest
-    n_estimators_rf = [100] #luigi.IntParameter()
-    max_depth_rf = [50, 100] #luigi.IntParameter()
-    max_features = ["sqrt"] #luigi.Parameter()
-    min_samples_split = [10, 25] #luigi.IntParameter()
+    n_estimators_rf = [100]
+    max_depth_rf = [50, 100]
+    max_features = ["sqrt"]
+    min_samples_split = [10, 25]
     min_samples_leaf = [10, 20]
     #Regresion logistica
     penalty = ['l1', 'l2']
     c_param = [0.5, 1, 1.5]
     #XGBoost
-    n_estimators = [1] #luigi.IntParameter()
-    learning_rate = [0.25] #luigi.FloatParameter()
-    subsample = [1]  #luigi.FloatParameter()
-    max_depth = [10,15] #luigi.IntParameter()
+    n_estimators = [100]
+    learning_rate = [0.25]
+    subsample = [1.0]
+    max_depth = [10, 15]
 
 
     def requires(self):
         #yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_features] for l in self.min_samples_split] for m in self.min_samples_leaf]
         #yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
-        return [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
+        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
 
 
 
@@ -1174,22 +1174,6 @@ class CorreModelos(luigi.task.WrapperTask):
 
 
 class PrediccionesConMejorModelo(luigi.Task):
-    #Parámetros de los modelos
-    #random forest
-    n_estimators_rf = luigi.IntParameter()
-    max_depth_rf = luigi.IntParameter()
-    max_features = luigi.Parameter()
-    min_samples_split = luigi.IntParameter()
-    min_samples_leaf = luigi.IntParameter()
-    #Regresion logistica
-    penalty = luigi.Parameter()
-    c_param = luigi.IntParameter()
-    #XGBooster
-    n_estimators=luigi.IntParameter()
-    learning_rate=luigi.IntParameter()
-    subsample=luigi.IntParameter()
-    max_depth=luigi.IntParameter()
-
 
     #Parámetros para la rds
     db_instance_id = 'db-dpa20'
@@ -1206,63 +1190,77 @@ class PrediccionesConMejorModelo(luigi.Task):
     folder_path = '5.modelo'
 
     #Folder para guardar la tarea actual en el s3
-    folder_path_predicciones = '6.predicciones'
+    folder_path_predicciones = '6.predicciones_prueba'
+    folder_modelo_final = '7.modelo_final'
+    folder_bias = '8.bias_and_fairness'
 
     def requires(self):
-        return {'infiles': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
+        return {'infile1': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
                                       self.db_user_password, self.subnet_group, self.security_group,
                                       self.bucket, self.root_path),
-                'infile1' : InsertaMetadatosXGB(self.n_estimators, self.learning_rate, self.subsample, self.max_depth),
-                'infile2' : InsertaMetadatosRegresion(self.penalty, self.c_param),
-                'infile3' : InsertaMetadatosRandomForest(self.n_estimators_rf, self.max_depth_rf, self.max_features,self.min_samples_split, self.min_samples_leaf)}
+                'infile2' : CorreModelos()}
 
 
-    #connection=pg.connect(host=db_instance_endpoint,
-                     #port=port,
-                     #user=DB_USER_NAME,
-                     #password=DB_USER_PASSWORD,
-                     #database=DB_NAME)
     def run(self):
 
-        with self.input()['infiles']['X_train'].open('r') as infile1:
-            X_train_input = pd.read_csv(infile1, sep="\t")
-        with self.input()['infiles']['X_test'].open('r') as infile2:
-            X_test_input = pd.read_csv(infile2, sep="\t")
-        with self.input()['infiles']['y_train'].open('r') as infile3:
-             y_train = pd.read_csv(infile3, sep="\t")
-        with self.input()['infiles']['y_test'].open('r') as infile4:
-             y_test = pd.read_csv(infile4, sep="\t")
+        with self.input()['infile1']['X_train'].open('r') as infile1:
+            X_train = pd.read_csv(infile1, sep="\t")
+        with self.input()['infile1']['X_test'].open('r') as infile2:
+            X_test = pd.read_csv(infile2, sep="\t")
+        with self.input()['infile1']['y_train'].open('r') as infile3:
+            y_train = pd.read_csv(infile3, sep="\t")
+        with self.input()['infile1']['y_test'].open('r') as infile4:
+            y_test = pd.read_csv(infile4, sep="\t")
+
+        print('**************\n',X_test.columns)
 
         #hacemos la consulta para traer el nombre del archivo pickle del mejor modelo
         connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
-        archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos order by cast(mean_test_score as double) DESC limit 1", connection)
+        archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos ORDER BY cast(mean_test_score as float) DESC limit 1", connection)
 
         #lo extraemos del s3
         ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
         s3_resource = boto3.client('s3')
-        #response=s3_resource.get_object(Bucket=bucket,Key='bucket_incidentes_cdmx/5.modelo/'+mejormodelo)
-        response=s3_resource.get_object(Bucket=bucket,Key=root_path +'/'+ folder_path +'/'+ archivo_mejormodelo)
+
+        path_to_file = '{}/{}/{}'.format(self.root_path, self.folder_path, archivo_mejormodelo.to_records()[0][1])
+        response=s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
         body=response['Body'].read()
         mejor_modelo=pickle.loads(body)
 
         #hacemos las predicciones de la etiqueta y de las probabilidades
-        mejor_modelo.fit(X_train_input,y_train)
-        ynew_proba = mejor_modelo.predict_proba(X_test_input)
-        ynew_etiqueta = mejor_modelo.predict(X_test_input)
+        mejor_modelo.fit(X_train, y_train.values.ravel())
+        ynew_proba = mejor_modelo.predict_proba(X_test)
+        ynew_etiqueta = mejor_modelo.predict(X_test)
 
-        #armamos un data frame
-        variables={'ynew_proba_0':ynew_proba[:,0],'ynew_proba_1':ynew_proba[:,1],'ynew_etiqueta':ynew_etiqueta,'y_test':y_test}
-        predicciones=pd.DataFrame(variables)
+        #df para Predicciones
+        #df_aux = funciones_pred.hace_df_para_ys(y_proba, y_tag, y_test)
+        variables = {'ynew_proba_0':ynew_proba[:,0],'ynew_proba_1':ynew_proba[:,1],'ynew_etiqueta':ynew_etiqueta,'y_test':y_test.values.ravel()}
+        df_aux = pd.DataFrame(variables)
+        df_predicciones = df_aux.assign(ano=2020)
 
-        with self.output().open('w') as outfile:
-            predicciones.to_csv(outfile, sep='\t', encoding='utf-8', index=None)
+        #df para bias y fairness
+        df_bias = pd.concat([X_test, df_aux], axis=1)
+
+
+        #guardamos las prediciones para X_test
+        with self.output()['outfile1'].open('w') as outfile1:
+            df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+
+        #guardamos el pickle del mejor modelo
+        with self.output()['outfile2'].open('w') as outfile2:
+            pickle.dump(archivo_mejormodelo, outfile2)
+
+        #guardamos el df para bias y fairness
+        with self.output()['outfile3'].open('w') as outfile3:
+            df_bias.to_csv(outfile3, sep='\t', encoding='utf-8', index=None)
 
     def output(self):
-        output_path = "s3://{}/{}/{}/".\
+        output_path = "s3://{}/{}/".\
                              format(self.bucket,
-                             self.root_path,
-                             self.folder_path_predicciones,
+                             self.root_path
                             )
-        return luigi.contrib.s3.S3Target(path=output_path+'predicciones.csv')
+        return {'outfile1' : luigi.contrib.s3.S3Target(path=output_path+self.folder_path_predicciones+'/predicciones_modelo.csv'),
+                'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/mejor_modelo.pkl', format=luigi.format.Nop),
+                'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv')}
 
 

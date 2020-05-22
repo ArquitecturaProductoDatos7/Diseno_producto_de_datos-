@@ -219,7 +219,7 @@ def completa_metadatos_modelo(meta, fname):
     otros_meta = pd.DataFrame({'fecha_de_ejecucion':fecha_de_ejecucion, 
                                'ip_address': ip_address,
                                'usuario': usuario,
-                               'archivo_modelo':'modelo'+fname+'.pkl',
+                               'archivo_modelo':fname+'.pkl',
                                'archivo_metadatos': 'metadata'+fname+'.csv'}, index=[0])
 
 
