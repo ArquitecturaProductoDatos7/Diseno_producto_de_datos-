@@ -227,3 +227,34 @@ def completa_metadatos_modelo(meta, fname):
 
     return metadata
 
+
+
+
+def hace_df_para_ys(y_proba, y_tag, y_test):
+     """Esta funcion hace un df con las probas y etiquetas de las predicciones """ 
+     vars = {'y_proba_0':y_proba[:,0],'y_proba_1':y_proba[:,1],'y_etiqueta':y_tag,'y_test':y_test.values.ravel()}
+     df = pd.DataFrame(vars)
+     return df
+
+
+
+
+def dummies_a_var_categorica(df, dummies_names):
+    """Esta funcion reconstruye la variable categorica de sus variables dummies
+        param: df el dataframe que contiene las variables dummies
+        param: dummies name lista de strings que contiene el nombre de las vars categoricas
+        return: df_sin_dummies"""
+
+    df_sin_dummies = df
+    for dummy in dummies_names:
+        aux = df.loc[:, df.columns.str.startswith(dummy)]
+        aux = aux.idxmax(axis=1)
+        aux = aux.str.replace(dummy+'_', '')
+
+        #elimino las dummies
+        cols_a_eliminar = df.columns[df.columns.str.startswith(dummy)].tolist()
+        df_sin_dummies.drop(columns=cols_a_eliminar, inplace=True)
+        #anado la var categorica
+        df_sin_dummies = pd.concat([df_sin_dummies, aux.rename(dummy)], axis=1)
+
+    return df_sin_dummies

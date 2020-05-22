@@ -1212,8 +1212,6 @@ class PrediccionesConMejorModelo(luigi.Task):
         with self.input()['infile1']['y_test'].open('r') as infile4:
             y_test = pd.read_csv(infile4, sep="\t")
 
-        print('**************\n',X_test.columns)
-
         #hacemos la consulta para traer el nombre del archivo pickle del mejor modelo
         connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
         archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos ORDER BY cast(mean_test_score as float) DESC limit 1", connection)
@@ -1232,14 +1230,13 @@ class PrediccionesConMejorModelo(luigi.Task):
         ynew_proba = mejor_modelo.predict_proba(X_test)
         ynew_etiqueta = mejor_modelo.predict(X_test)
 
-        #df para Predicciones
-        #df_aux = funciones_pred.hace_df_para_ys(y_proba, y_tag, y_test)
-        variables = {'ynew_proba_0':ynew_proba[:,0],'ynew_proba_1':ynew_proba[:,1],'ynew_etiqueta':ynew_etiqueta,'y_test':y_test.values.ravel()}
-        df_aux = pd.DataFrame(variables)
-        df_predicciones = df_aux.assign(ano=2020)
-
         #df para bias y fairness
-        df_bias = pd.concat([X_test, df_aux], axis=1)
+        df_aux = funciones_mod.hace_df_para_ys(ynew_proba, ynew_etiqueta, y_test)
+        x_test_sin_dummies = funciones_mod.dummies_a_var_categorica(X_test, ['delegacion_inicio', 'dia_semana', 'tipo_entrada', 'incidente_c4_rec'])
+        df_bias = pd.concat([x_test_sin_dummies, df_aux], axis=1)
+
+        #df para Predicciones
+        df_predicciones = df_bias.assign(ano=2020)
 
 
         #guardamos las prediciones para X_test
