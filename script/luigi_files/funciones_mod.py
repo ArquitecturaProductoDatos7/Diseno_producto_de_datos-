@@ -9,6 +9,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix, auc, roc_curve
 import pickle
 
 
@@ -220,12 +221,35 @@ def completa_metadatos_modelo(meta, fname):
                                'ip_address': ip_address,
                                'usuario': usuario,
                                'archivo_modelo':fname+'.pkl',
-                               'archivo_metadatos': 'metadata'+fname+'.csv'}, index=[0])
+                               'archivo_metadatos': 'metadata_'+fname+'.csv'}, index=[0])
 
 
     metadata = pd.concat([otros_meta, meta], axis=1, sort=False)
 
     return metadata
+
+
+
+def metadata_modelo(model_name, y_test, y_tag):
+       """ Esta funcion guarda los metadatos para el mejor modelo y los presenta en pantalla"""
+
+       precision = precision_score(y_test.values.ravel(), y_tag)
+       #Metricas para el modelo
+       print("\n***********  ◦°˚\(*❛‿❛)/˚°◦   ********************")
+       print("Modelo:",  model_name)
+       print('Precision:', precision)
+       ########## Confusion matrix
+       conf_mat = pd.DataFrame(confusion_matrix(y_test.values.ravel(), y_tag))
+       conf_mat = conf_mat[conf_mat.columns[::-1]].iloc[::-1]
+       print(conf_mat)
+       print('**************************************************\n')
+
+       meta = pd.DataFrame({'precision': precision, 
+                            'parametros': model_name.split("_",2)[2].split('.')[0] }, index=[0])
+
+       metadata = completa_metadatos_modelo(meta, model_name)
+
+       return metadata
 
 
 

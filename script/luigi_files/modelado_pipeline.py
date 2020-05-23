@@ -16,7 +16,6 @@ from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasCl
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
 
-
 class CreaEsquemaProcesamiento(PostgresQuery):
     "Crea el esquema Procesamiento dentro de la base"
     #Para la creacion de la base
@@ -112,6 +111,7 @@ class CreaTablaModeloMetadatos(PostgresQuery):
     password = luigi.Parameter()
 
     table = ""
+
     query = """
             CREATE TABLE modelo.Metadatos(fecha_de_ejecucion VARCHAR,
                                           ip_address VARCHAR,
@@ -143,6 +143,40 @@ class CreaTablaModeloMetadatos(PostgresQuery):
     def requires(self):
          return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
                                    self.host, self.database, self.user, self.password) 
+
+
+
+
+class CreaTablaModeloMetadatosParaMejorModelo(PostgresQuery):
+    "Crea la tabla de metadatos_mejor_modelo dentro del esquema Modelo"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE modelo.Metadatos_mejor_modelo(fecha_de_ejecucion VARCHAR,
+                                                       ip_address VARCHAR,
+                                                       usuario VARCHAR,
+                                                       archivo_modelo VARCHAR,
+                                                       archivo_metadatos VARCHAR,
+                                                       precision_score FLOAT,
+                                                       parametros VARCHAR
+                                                       ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+
+
 
 
 
@@ -754,18 +788,18 @@ class ModeloRandomForest(luigi.Task):
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_ramdomF(X_train_input, y_train, hyper_params_grid)
 
-       self.fname = "_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
+       self.fname = "random_forest_n_estimators_" + str(self.n_estimators) + "_max_depth_" + str(self.max_depth) + "_max_features_" + str(self.max_features) + "_min_samples_split_" + str(self.min_samples_split) + "_min_samples_leaf_" + str(self.min_samples_leaf)
        metadata = funciones_mod.completa_metadatos_modelo(metadata, self.fname)
 
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
-       with open('random_forest'+self.fname+'.pkl', 'wb') as outfile2:
+       with open(self.fname+'.pkl', 'wb') as outfile2:
            pickle.dump(grid_search, outfile2)
 
-       funciones_s3.upload_file('random_forest'+self.fname+'.pkl', self.bucket,
-                                '{}/{}/random_forest{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
+       funciones_s3.upload_file(self.fname+'.pkl', self.bucket,
+                                '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
     def output(self):
        output_path = "s3://{}/{}/{}/".\
@@ -774,7 +808,7 @@ class ModeloRandomForest(luigi.Task):
                              self.folder_path,
                             )
 
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata_ranfom_forest'+self.fname+'.csv')
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata_'+self.fname+'.csv')
 
 
 
@@ -833,18 +867,18 @@ class ModeloRegresion(luigi.Task):
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_RL(X_train_input, y_train, hyper_params_grid)
 
-       self.fname = "_penalty_" + str(self.penalty) + "_C_" + str(self.c_param)
-       metadata = funciones_mod.completa_metadatos_modelo(metadata, self.fname)
+       self.fname = "reg_log_penalty_" + str(self.penalty) + "_C_" + str(self.c_param)
+       metadata = funciones_mod.completa_metadatos_modelo(metadata,self.fname)
 
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
-       with open('reg_log'+self.fname+'.pkl', 'wb') as outfile2:
+       with open(self.fname+'.pkl', 'wb') as outfile2:
            pickle.dump(grid_search, outfile2)
 
-       funciones_s3.upload_file('reg_log'+self.fname+'.pkl', self.bucket,
-                                '{}/{}/reg_log{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
+       funciones_s3.upload_file(self.fname+'.pkl', self.bucket,
+                                '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
     def output(self):
        output_path = "s3://{}/{}/{}/".\
@@ -853,7 +887,7 @@ class ModeloRegresion(luigi.Task):
                              self.folder_path,
                             )
 
-       return luigi.contrib.s3.S3Target(path=output_path+'metadata_reg_log'+self.fname+'.csv')
+       return luigi.contrib.s3.S3Target(path=output_path+'metadata_'+self.fname+'.csv')
 
 
 
@@ -911,24 +945,25 @@ class ModeloXGB(luigi.Task):
                           'subsample':[self.subsample], 'max_depth':[self.max_depth]}
 
 
-       self.fname = "_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
+       self.fname = "xgb_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
        print("*****************\n", self.fname)
 
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
        [metadata, grid_search] = funciones_mod.magic_loop_XGB(X_train_input, y_train, hyper_params_grid)
-
+       print(metadata.columns)
        metadata = funciones_mod.completa_metadatos_modelo(metadata, self.fname)
+       print(metadata.columns)
 
        #Se guardan los archivos
        with self.output().open('w') as outfile1:
            metadata.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
-       with open('xgb'+self.fname+'.pkl', 'wb') as outfile2:
+       with open(self.fname+'.pkl', 'wb') as outfile2:
            pickle.dump(grid_search, outfile2)
 
-       funciones_s3.upload_file('xgb'+self.fname+'.pkl', self.bucket,
-                                '{}/{}/xgb{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
+       funciones_s3.upload_file(self.fname+'.pkl', self.bucket,
+                                '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname+'.pkl'))
 
 
     def output(self):
@@ -938,7 +973,7 @@ class ModeloXGB(luigi.Task):
                              self.folder_path,
                             )
 
-       return luigi.contrib.s3.S3Target(path = output_path + 'metadata_xgb' + self.fname + '.csv')
+       return luigi.contrib.s3.S3Target(path = output_path + 'metadata_' + self.fname + '.csv')
 
 
 
@@ -989,7 +1024,7 @@ class InsertaMetadatosRandomForest(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT"),
+             ("rank_test_score", "VARCHAR"),
              ("modelo", "VARCHAR")]
 
 
@@ -1042,9 +1077,9 @@ class InsertaMetadatosRegresion(CopyToTable):
              ("archivo_metadatos", "VARCHAR"),
              ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
              ("params", "VARCHAR"),
-             ("mean_score_time", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -1057,13 +1092,14 @@ class InsertaMetadatosRegresion(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT"),
+             ("rank_test_score", "VARCHAR"),
              ("modelo", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
          with self.input()['infile2'].open('r') as infile:
               for line in infile:
+                  print(line.strip('\n').split("\t"))
                   yield line.strip("\n").split("\t")
 
 
@@ -1107,9 +1143,9 @@ class InsertaMetadatosXGB(CopyToTable):
              ("archivo_metadatos", "VARCHAR"),
              ("mean_fit_time", "VARCHAR"),
              ("std_fit_time", "VARCHAR"),
+             ("mean_score_time", "VARCHAR"),
              ("std_score_time", "VARCHAR"),
              ("params", "VARCHAR"),
-             ("mean_score_time", "VARCHAR"),
              ("split0_test_score", "VARCHAR"),
              ("split1_test_score", "VARCHAR"),
              ("split2_test_score", "VARCHAR"),
@@ -1122,7 +1158,7 @@ class InsertaMetadatosXGB(CopyToTable):
              ("split9_test_score", "VARCHAR"),
              ("mean_test_score", "VARCHAR"),
              ("std_test_score", "VARCHAR"),
-             ("rank_test_score", "INT"),
+             ("rank_test_score", "VARCHAR"),
              ("modelo", "VARCHAR")]
 
     def rows(self):
@@ -1145,7 +1181,7 @@ class CorreModelos(luigi.task.WrapperTask):
     Esta tarrea corre 3 modelos (Random Forest, Regresion Logistica, XGBoost) con diferentes parametros
     """
     #Parametros del modelo random forest
-    n_estimators_rf = [100]
+    n_estimators_rf = [50]
     max_depth_rf = [50, 100]
     max_features = ["sqrt"]
     min_samples_split = [10, 25]
@@ -1173,19 +1209,19 @@ class CorreModelos(luigi.task.WrapperTask):
 
 
 
-class PrediccionesConMejorModelo(luigi.Task):
+class SeleccionaMejorModelo(luigi.Task):
 
     #Parámetros para la rds
-    db_instance_id = 'db-dpa20'
-    db_name = 'db_incidentes_cdmx'
-    db_user_name = 'postgres'
-    db_user_password = 'passwordDB'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    host = funciones_rds.db_endpoint(db_instance_id)
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
 
     # Parametros del Bucket
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    bucket = 'dpa20-incidentes-cdmx'
     root_path = 'bucket_incidentes_cdmx'
     folder_path = '5.modelo'
 
@@ -1193,6 +1229,7 @@ class PrediccionesConMejorModelo(luigi.Task):
     folder_path_predicciones = '6.predicciones_prueba'
     folder_modelo_final = '7.modelo_final'
     folder_bias = '8.bias_and_fairness'
+    fname = ''
 
     def requires(self):
         return {'infile1': DummiesBase(self.db_instance_id, self.db_name, self.db_user_name,
@@ -1215,12 +1252,12 @@ class PrediccionesConMejorModelo(luigi.Task):
         #hacemos la consulta para traer el nombre del archivo pickle del mejor modelo
         connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
         archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos ORDER BY cast(mean_test_score as float) DESC limit 1", connection)
-
+        self.fname = archivo_mejormodelo.to_records()[0][1]
         #lo extraemos del s3
         ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
         s3_resource = boto3.client('s3')
 
-        path_to_file = '{}/{}/{}'.format(self.root_path, self.folder_path, archivo_mejormodelo.to_records()[0][1])
+        path_to_file = '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname)
         response=s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
         body=response['Body'].read()
         mejor_modelo=pickle.loads(body)
@@ -1229,6 +1266,7 @@ class PrediccionesConMejorModelo(luigi.Task):
         mejor_modelo.fit(X_train, y_train.values.ravel())
         ynew_proba = mejor_modelo.predict_proba(X_test)
         ynew_etiqueta = mejor_modelo.predict(X_test)
+        metadata = funciones_mod.metadata_modelo(self.fname, y_test, ynew_etiqueta)
 
         #df para bias y fairness
         df_aux = funciones_mod.hace_df_para_ys(ynew_proba, ynew_etiqueta, y_test)
@@ -1236,7 +1274,13 @@ class PrediccionesConMejorModelo(luigi.Task):
         df_bias = pd.concat([x_test_sin_dummies, df_aux], axis=1)
 
         #df para Predicciones
-        df_predicciones = df_bias.assign(ano=2020)
+        df_predicciones = pd.concat([x_test_sin_dummies.assign(ano=2020), df_aux], axis=1)
+        df_predicciones.drop(['y_test'], axis=1, inplace=True)
+
+
+        #guardamos las prediciones para X_test
+        with self.output()['outfile1'].open('w') as outfile1:
+            df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
 
 
         #guardamos las prediciones para X_test
@@ -1251,13 +1295,131 @@ class PrediccionesConMejorModelo(luigi.Task):
         with self.output()['outfile3'].open('w') as outfile3:
             df_bias.to_csv(outfile3, sep='\t', encoding='utf-8', index=None)
 
+        #guardamos el metadata del modelo
+        with self.output()['outfile4'].open('w') as outfile4:
+            metadata.to_csv(outfile4, sep='\t', encoding='utf-8', index=None, header=False)
+
+
     def output(self):
         output_path = "s3://{}/{}/".\
                              format(self.bucket,
                              self.root_path
                             )
         return {'outfile1' : luigi.contrib.s3.S3Target(path=output_path+self.folder_path_predicciones+'/predicciones_modelo.csv'),
-                'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/mejor_modelo.pkl', format=luigi.format.Nop),
-                'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv')}
+                'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/'+self.fname, format=luigi.format.Nop),
+                'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv'),
+                'outfile4' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_modelo.csv')}
+
+
+
+
+
+
+
+
+class CreaEsquemaPrediccion(PostgresQuery):
+    "Crea el esquema Predicciones dentro de la base"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "DROP SCHEMA IF EXISTS prediccion cascade; CREATE SCHEMA prediccion;"
+
+    def requires(self):
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
+
+
+
+
+
+
+class CreaTablaPredicciones(PostgresQuery):
+    "Crea la tabla de las predicciones dentro del esquema PREDICCION"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE prediccion.Predicciones(id SERIAL PRIMARY KEY,
+                                                 mes INT,
+                                                 hora INT,
+                                                 delegacion_inicio VARCHAR,
+                                                 dia_semana VARCHAR,
+                                                 tipo_entrada VARCHAR,
+                                                 incidente_c4_rec VARCHAR,
+                                                 ano INT,
+                                                 y_proba_0 FLOAT,
+                                                 y_proba_1 FLOAT,
+                                                 y_etiqueta INT
+                                                 ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaPrediccion(self.db_instance_id, self.subnet_group, self.security_group,
+                                      self.host, self.database, self.user, self.password)
+
+
+
+
+
+
+class InsertaPrediccionesPrueba(CopyToTable):
+    "Inserta las predicciones para las predicciones del set de prueba - X_test" 
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+
+    # Nombre de la tabla a insertar
+    table = 'prediccion. Predicciones'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("mes", "INT"),
+             ("hora", "INT"),
+             ("delegacion_inicio", "VARCHAR"),
+             ("dia_semana", "VARCHAR"),
+             ("tipo_entrada", "VARCHAR"),
+             ("incidente_c4_rec", "VARCHAR"),
+             ("ano", "INT"),
+             ("y_proba_0", "FLOAT"),
+             ("y_proba_1", "FLOAT"),
+             ("y_etiqueta", "INT")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['outfile1'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1" :SeleccionaMejorModelo(self.db_instance_id, self.database, self.user,
+                                                   self.password, self.subnet_group, self.security_group, self.host),
+                  "infile2" : CreaTablaPredicciones(self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.database, self.user, self.password, self.host)}
+
 
 
