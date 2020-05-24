@@ -12,6 +12,7 @@ import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
+import funcion_bias
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
@@ -1305,8 +1306,60 @@ class SeleccionaMejorModelo(luigi.Task):
                 'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/'+self.fname, format=luigi.format.Nop),
                 'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv'),
                 'outfile4' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_mejor_modelo.csv')}
+    
 
 
+
+class CreaEsquemaBiasFairness(PostgresQuery):
+    "Crea el esquema BiasFairness dentro de la base"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = "DROP SCHEMA IF EXISTS procesamiento cascade; CREATE SCHEMA biasfairness;"
+
+    def requires(self):
+        return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
+                              self.password, self.subnet_group, self.security_group)
+    
+    
+
+    
+    
+class CreaTablaBiasFairness(PostgresQuery):
+    "Crea la tabla de los metadados de bias dentro del esquema BiasFairness"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE biasfairness.Metadatos(atribute_value VARCHAR,
+                                          for FLOAT,
+                                          fnr FLOAT,
+                                          for_disparity FLOAT,
+                                          fnr_disparity FLOAT 
+                                          ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaBiasFairness(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
 
 
 
