@@ -233,6 +233,7 @@ class PreprocesoBase(luigi.Task):
 
        dataframe = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
        dataframe = funciones_mod.preprocesamiento_variable(dataframe)
+       dataframe = funciones_mod.crea_variable_target(dataframe)
        dataframe =  funciones_mod.elimina_na_de_variable_delegacion(dataframe)
 
        #print("Df que vamos a guardar\n",dataframe.head())
@@ -946,7 +947,6 @@ class ModeloXGB(luigi.Task):
 
 
        self.fname = "xgb_n_estimators_" + str(self.n_estimators) + "_learning_rate_" + str(self.learning_rate) + "_subsample_" + str(self.subsample) + "_max_depth_" + str(self.max_depth)
-       print("*****************\n", self.fname)
 
        print('***** Comienza a calcular el modelo *****')
        #Se corre el modelo
@@ -1099,7 +1099,6 @@ class InsertaMetadatosRegresion(CopyToTable):
          #Leemos el df de metadatos
          with self.input()['infile2'].open('r') as infile:
               for line in infile:
-                  print(line.strip('\n').split("\t"))
                   yield line.strip("\n").split("\t")
 
 
@@ -1198,8 +1197,8 @@ class CorreModelos(luigi.task.WrapperTask):
 
     def requires(self):
         #yield [[[[[InsertaMetadatosRandomForest(i,j,k,l,m) for i in self.n_estimators_rf] for j in self.max_depth_rf] for k in self.max_features] for l in self.min_samples_split] for m in self.min_samples_leaf]
-        #yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
-        yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
+        yield [[InsertaMetadatosRegresion(i,j) for i in self.penalty] for j in self.c_param]
+        #yield [[[[InsertaMetadatosXGB(i,j,k,l) for i in self.n_estimators] for j in self.learning_rate] for k in self.subsample] for l in self.max_depth]
 
 
 
@@ -1253,20 +1252,23 @@ class SeleccionaMejorModelo(luigi.Task):
         connection=funciones_rds.connect(self.db_name, self.db_user_name, self.db_user_password, self.host)
         archivo_mejormodelo = psql.read_sql("SELECT archivo_modelo FROM modelo.Metadatos ORDER BY cast(mean_test_score as float) DESC limit 1", connection)
         self.fname = archivo_mejormodelo.to_records()[0][1]
+        params = psql.read_sql("SELECT params FROM modelo.Metadatos ORDER BY cast(mean_test_score as float) DESC limit 1", connection)
+        params = params.to_records()[0][1]
         #lo extraemos del s3
         ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
         s3_resource = boto3.client('s3')
 
         path_to_file = '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname)
-        response=s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
-        body=response['Body'].read()
-        mejor_modelo=pickle.loads(body)
+        print("*********", path_to_file)
+        response = s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
+        body = response['Body'].read()
+        mejor_modelo = pickle.loads(body)
 
         #hacemos las predicciones de la etiqueta y de las probabilidades
         mejor_modelo.fit(X_train, y_train.values.ravel())
         ynew_proba = mejor_modelo.predict_proba(X_test)
         ynew_etiqueta = mejor_modelo.predict(X_test)
-        metadata = funciones_mod.metadata_modelo(self.fname, y_test, ynew_etiqueta)
+        metadata = funciones_mod.metadata_modelo(self.fname, y_test, ynew_etiqueta, params)
 
         #df para bias y fairness
         df_aux = funciones_mod.hace_df_para_ys(ynew_proba, ynew_etiqueta, y_test)
@@ -1276,11 +1278,6 @@ class SeleccionaMejorModelo(luigi.Task):
         #df para Predicciones
         df_predicciones = pd.concat([x_test_sin_dummies.assign(ano=2020), df_aux], axis=1)
         df_predicciones.drop(['y_test'], axis=1, inplace=True)
-
-
-        #guardamos las prediciones para X_test
-        with self.output()['outfile1'].open('w') as outfile1:
-            df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
 
 
         #guardamos las prediciones para X_test
@@ -1308,9 +1305,48 @@ class SeleccionaMejorModelo(luigi.Task):
         return {'outfile1' : luigi.contrib.s3.S3Target(path=output_path+self.folder_path_predicciones+'/predicciones_modelo.csv'),
                 'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/'+self.fname, format=luigi.format.Nop),
                 'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv'),
-                'outfile4' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_modelo.csv')}
+                'outfile4' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_mejor_modelo.csv')}
 
 
+
+
+
+
+class InsertaMetadatosMejorModelo(CopyToTable):
+    "Inserta las predicciones para las predicciones del set de prueba - X_test" 
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+    # Nombre de la tabla a insertar
+    table = 'modelo.Metadatos_mejor_modelo'
+
+    columns = [("fecha_de_ejecucion", "VARCHAR"),
+               ("ip_address", "VARCHAR"),
+               ("usuario", "VARCHAR"),
+               ("archivo_modelo", "VARCHAR"),
+               ("archivo_metadatos", "VARCHAR"),
+               ("precision_score", "FLOAT"),
+               ("parametros", "VARCHAR")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['outfile4'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1" :SeleccionaMejorModelo(self.db_instance_id, self.database, self.user,
+                                                   self.password, self.subnet_group, self.security_group, self.host),
+                  "infile2" : CreaTablaModeloMetadatosParaMejorModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                                                      self.database, self.user, self.password, self.host)}
 
 
 
@@ -1336,6 +1372,7 @@ class CreaEsquemaPrediccion(PostgresQuery):
     def requires(self):
         return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
                               self.password, self.subnet_group, self.security_group)
+
 
 
 
@@ -1394,7 +1431,7 @@ class InsertaPrediccionesPrueba(CopyToTable):
 
 
     # Nombre de la tabla a insertar
-    table = 'prediccion. Predicciones'
+    table = 'prediccion.Predicciones'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
     columns=[("mes", "INT"),

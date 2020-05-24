@@ -19,7 +19,6 @@ def preprocesamiento_variable(df):
     Esta funcion realiza los siguientes cambios al df:
         1. Recategoriza la variable 'incidente_c4'
         2. Crea la variable 'hora' que guarda la solo la hora de la columna 'hora_creacion'
-        3. Crea la variable objetivo 'target' 
     """
 
     # Split para las categorias
@@ -27,11 +26,23 @@ def preprocesamiento_variable(df):
 
     # Crear la variable hora que solo contenga la hora
     df['hora'] = df['hora_creacion'].astype('str').str.split(':').str[0]
-    # Crear la variable target
+
+    return df
+
+
+
+def crea_variable_target(df):
+    """
+    Esta funcion realiza crea la variable objetivo 'target' 
+    """
+
+   # Crear la variable target
     df['clave'] = df['codigo_cierre'].str[1:2]  # Obtiene la letra (categoria)
     df['target']=np.where(df['clave']=='a',1,0)  # la convierte a 0/1
 
     return df
+
+
 
 
 
@@ -230,7 +241,7 @@ def completa_metadatos_modelo(meta, fname):
 
 
 
-def metadata_modelo(model_name, y_test, y_tag):
+def metadata_modelo(model_name, y_test, y_tag, model_params):
        """ Esta funcion guarda los metadatos para el mejor modelo y los presenta en pantalla"""
 
        precision = precision_score(y_test.values.ravel(), y_tag)
@@ -244,8 +255,8 @@ def metadata_modelo(model_name, y_test, y_tag):
        print(conf_mat)
        print('**************************************************\n')
 
-       meta = pd.DataFrame({'precision': precision, 
-                            'parametros': model_name.split("_",2)[2].split('.')[0] }, index=[0])
+       meta = pd.DataFrame({'precision': precision,
+                            'parametros': model_params} ,index=[0])
 
        metadata = completa_metadatos_modelo(meta, model_name)
 
