@@ -1259,7 +1259,6 @@ class SeleccionaMejorModelo(luigi.Task):
         s3_resource = boto3.client('s3')
 
         path_to_file = '{}/{}/{}'.format(self.root_path, self.folder_path, self.fname)
-        print("*********", path_to_file)
         response = s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
         body = response['Body'].read()
         mejor_modelo = pickle.loads(body)
@@ -1282,7 +1281,7 @@ class SeleccionaMejorModelo(luigi.Task):
 
         #guardamos las prediciones para X_test
         with self.output()['outfile1'].open('w') as outfile1:
-            df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+            df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
         #guardamos el pickle del mejor modelo
         with self.output()['outfile2'].open('w') as outfile2:
