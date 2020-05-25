@@ -59,7 +59,7 @@ class ExtraeInfoMensual(luigi.Task):
     host =  luigi.Parameter()
 
     #Para el bucket
-    bucket = 'dpa20-incidentes-cdmx'
+    bucket = luigi.Parameter()
     root_path = 'bucket_incidentes_cdmx'
     folder_path = '9.predicciones'
 
@@ -76,14 +76,12 @@ class ExtraeInfoMensual(luigi.Task):
 
     def run(self):
         [registros, metadata] = funciones_req.peticion_api_info_mensual(self.data_url, self.meta_url, self.month, self.year)
-        print(metadata)
-        print(registros)
 
         with self.output()['records'].open('w') as outfile1:
-             json.dumps(registros).encode('UTF-8')
+             json.dump(registros, outfile1)
 
         with self.output()['metadata'].open('w') as outfile2:
-             json.dumps(metadata).encode('UTF-8')
+             json.dump(metadata, outfile2)
 
 
     def output(self):
@@ -102,7 +100,52 @@ class ExtraeInfoMensual(luigi.Task):
 class InsertaInfoMensualRaw(CopyToTable):
     "Inserta raw de los datos mensuales" 
     #Mes a extraer
-    month = 5
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Para condectarse a la Base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'
+    folder_path = '9.predicciones'
+
+
+    # Nombre de la tabla a insertar
+    table = 'raw.InfoMensual'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("registros", "JSON")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['records'].open('r') as infile:
+             records = json.load(infile)
+             for i in range(0, len(records)):
+                   yield [json.dumps(records[i]['fields'])]
+
+    def requires(self):
+        return {"infile1" : ExtraeInfoMensual(self.month, self.year, self.db_instance_id,
+                                              self.database, self.user, self.password,
+                                              self.subnet_group, self.security_group, self.host, self.bucket),
+                "infile2" : CreaTablaRawInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.host, self.database, self.user, self.password)}
+
+
+
+
+
+class InsertaMetadataInfoMensualRaw(CopyToTable):
+    "Inserta el metadata de los datos mensuales" 
+    #Mes a extraer
+    month = 4
     year = 2020
 
     # Parametros del RDS
@@ -120,26 +163,37 @@ class InsertaInfoMensualRaw(CopyToTable):
     folder_path = '9.predicciones'
 
 
-    # Nombre de la tabla a insertar
-    table = 'raw.InfoMensual'
+   # Nombre de la tabla a insertar
+    table = 'raw.Metadatos'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("registros", "JSON")]
+    columns=[("dataset", "VARCHAR"),
+             ("timezone", "VARCHAR"),
+             ("rows", "INT"),
+             ("refine_ano", "VARCHAR"),
+             ("refine_mes", "VARCHAR"),
+             ("parametro_url", "VARCHAR"),
+             ("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("nombre_archivo", "VARCHAR"),
+             ("formato_archivo", "VARCHAR")]
 
     def rows(self):
         #Leemos el df de metadatos
-        with self.input()['infile1']['records'].open('r') as infile:
-             yield [json.dumps(record[i]['fields']) for i in range(0, len(record))]
+        with self.input()['infile1']['metadata'].open('r') as infile:
+             records = json.load(infile)
+             yield [json.dumps(records[campo]) for campo in records.keys()]
+
 
     def requires(self):
         return {"infile1" : ExtraeInfoMensual(self.month, self.year, self.db_instance_id,
                                               self.database, self.user, self.password,
-                                              self.subnet_group, self.security_group, self.host),
-                "infile2" : CreaTablaRawInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
-                                                    self.host, self.database, self.user, self.password)}
-
-
-
+                                              self.subnet_group, self.security_group, self.host, self.bucket),
+                "infile2" : InsertaInfoMensualRaw(self.month, self.year,
+                                                  self.db_instance_id, self.subnet_group, self.security_group,
+                                                  self.database, self.user, self.password, self.host,
+                                                  self.bucket)}
 
 
 
