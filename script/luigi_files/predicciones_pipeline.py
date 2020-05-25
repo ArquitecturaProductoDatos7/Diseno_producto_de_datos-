@@ -10,6 +10,7 @@ import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
+import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
@@ -194,6 +195,84 @@ class InsertaMetadataInfoMensualRaw(CopyToTable):
                                                   self.db_instance_id, self.subnet_group, self.security_group,
                                                   self.database, self.user, self.password, self.host,
                                                   self.bucket)}
+
+
+class CreaTablaCleanedIncidentesInfoMensual(PostgresQuery):
+
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    host = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE cleaned.IncidentesVialesInfoMensual(hora_creacion TIME,
+                                                  delegacion_inicio VARCHAR,
+                                                  dia_semana VARCHAR,
+                                                  tipo_entrada VARCHAR,
+                                                  mes SMALLINT,
+                                                  latitud FLOAT,
+                                                  longitud FLOAT,
+                                                  ano INT,
+                                                  incidente_c4 VARCHAR,
+                                                  codigo_cierre VARCHAR);
+            """
+
+    def requires(self):
+         return etl_pipeline_ver6.CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+        
+        
+
+class LimpiaInfoMensual(PostgresQuery):
+    """
+    Limpia la información de los meses nuevos
+    """
+    
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+    
+    #Para la creacion de la base
+    db_instance_id =  luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    
+
+    table = ""
+    query = """
+            INSERT INTO cleaned.IncidentesVialesInfoMensual
+            SELECT (registros->>'hora_creacion')::TIME,
+                   remove_points(LOWER(registros->>'delegacion_inicio')),
+                   unaccent(LOWER(registros->>'dia_semana')),
+                   unaccent(LOWER(registros->>'tipo_entrada')),
+                   (registros->>'mes')::smallint,
+                   (registros->>'latitud')::float,
+                   (registros->>'longitud')::float,
+                   (registros->>'ano')::int,
+                   unaccent(remove_points(LOWER(registros->>'incidente_c4'))),
+                   unaccent(remove_points(LOWER(registros->>'codigo_cierre')))
+            FROM raw.InfoMensual
+            WHERE registros->>'hora_creacion' LIKE '%\:%' and registros->>'mes'=month and registros->>'ano'=year;
+            """
+
+    def requires(self):
+        # Indica que se debe hacer primero las tareas especificadas aqui
+        return  [CreaTablaCleanedIncidentesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), 
+                 #FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+                 #FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
+                 #InsertaMetadatosPruebasUnitariasExtract()
+                InsertaInfoMensualRaw(self.month,self.year,self.db_instance_id,self.subnet_group,self.security_group, self.database, self.user,self.password,self.host)]
 
 
 
