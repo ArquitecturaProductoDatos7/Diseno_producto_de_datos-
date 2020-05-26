@@ -1350,12 +1350,7 @@ class InsertaMetadatosMejorModelo(CopyToTable):
 
 
 
-
-
-
-
-
-class CreaEsquemaBiasFairness(PostgresQuery):
+class CreaEsquemaMetadatosBiasFairness(PostgresQuery):
     "Crea el esquema BiasFairness dentro de la base"
     #Para la creacion de la base
     db_instance_id = luigi.Parameter()
@@ -1369,7 +1364,7 @@ class CreaEsquemaBiasFairness(PostgresQuery):
     password = luigi.Parameter()
 
     table = ""
-    query = "DROP SCHEMA IF EXISTS procesamiento cascade; CREATE SCHEMA biasfairness;"
+    query = "DROP SCHEMA IF EXISTS biasfairness cascade; CREATE SCHEMA biasfairness;"
 
     def requires(self):
         return ObtieneRDSHost(self.db_instance_id, self.database, self.user,
@@ -1379,8 +1374,7 @@ class CreaEsquemaBiasFairness(PostgresQuery):
 
 
 
-
-class CreaTablaBiasFairness(PostgresQuery):
+class CreaTablaMetadatosBiasFairness(PostgresQuery):
     "Crea la tabla de los metadados de bias dentro del esquema BiasFairness"
     #Para la creacion de la base
     db_instance_id = luigi.Parameter()
@@ -1395,17 +1389,121 @@ class CreaTablaBiasFairness(PostgresQuery):
 
     table = ""
     query = """
-            CREATE TABLE biasfairness.Metadatos(atribute_value VARCHAR,
-                                          for FLOAT,
-                                          fnr FLOAT,
-                                          for_disparity FLOAT,
-                                          fnr_disparity FLOAT 
+            CREATE TABLE biasfairness.Metadatos(fecha_de_ejecucion VARCHAR,
+                                          ip_address VARCHAR,
+                                          usuario VARCHAR,
+                                          delegacion_max_FOR VARCHAR,
+                                          delegacion_max_FNR VARCHAR,
+                                          promedio_FOR FLOAT,
+                                          promedio_FNR FLOAT,
+                                          delegacion_min_FOR VARCHAR,
+                                          delegacion_min_FNR VARCHAR 
                                           ); 
             """
 
     def requires(self):
          return CreaEsquemaBiasFairness(self.db_instance_id, self.subnet_group, self.security_group,
                                    self.host, self.database, self.user, self.password)
+        
+        
+        
+        
+class CalculaBiasFairness(luigi.Task):
+    """
+    Esta tarea ejecuta el calculo de las métricas elegidas para Bias y Fairness
+    """
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    db_name = 'db_incidentes_cdmx'
+    db_user_name = 'postgres'
+    db_user_password = 'passwordDB'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Parametros del Bucket
+    bucket = 'dpa20-incidentes-cdmx'
+    root_path = 'bucket_incidentes_cdmx'
+
+    #Folder para guardar la tarea actual en el s3
+    folder_path = '8.bias_and_fairness'
+    fname = ""
+
+
+    def requires(self):
+
+       return {'infiles': SeleccionaMejorModelo(self.db_instance_id, self.db_name, self.db_user_name,
+                                      self.db_user_password, self.subnet_group, self.security_group,
+                                      self.host)}
+
+    def run(self):
+       #Se abren los archivos
+       with self.input()['infiles']['df_bias'].open('r') as infile1:
+             df_bias = pd.read_csv(infile1, sep="\t")
+
+       print('***** Comienza a calcular bias *****')
+       #Se llama la función de bias
+       df_aequitas,df= funciones_mod.MetricasBiasFairness(df_bias)
+        
+       self.fname = "df_aequitas"
+       df = funcion_bias.completa_metadatos_bias(df,self.fname)
+
+       #Se guardan los archivos
+       with self.output().open('w') as outfile1:
+           df_aequitas.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+       with self.output().open('w') as outfile2:
+            df.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
+        
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+
+       return {'outfile1':luigi.contrib.s3.S3Target(path=output_path+'tabla_'+self.fname+'.csv'),
+               'outfile2':luigi.contrib.s3.S3Target(path=output_path+'metadata_'+self.fname+'.csv')}
+    
+    
+    
+class InsertaMetadatosBias(CopyToTable):
+    "Esta tarea guarda los metadatos del modelo de Bias/Fairness a la RDS"
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para conectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+    # Nombre de la tabla a insertar
+    table = 'biasfairness.Metadatos'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion","VARCHAR")
+             ("ip_address", "VARCHAR"),
+             ("usuario","VARCHAR"),
+             ("delegacion_max_FOR","VARCHAR"),
+             ("delegacion_max_FNR","VARCHAR"),
+             ("promedio_FOR","FLOAT"),
+             ("promedio_FNR","FLOAT"),
+             ("delegacion_min_FOR","VARCHAR"),
+             ("delegacion_min_FNR","VARCHAR")]
+    
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['outfile2'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  {'infile' : CalculaBiasFairness(),
+                'infile2' : CreaTablaBiasFairness(self.db_instance_id, self.subnet_group, self.security_group,
+                                                  self.host,self.database, self.user, self.password)}
+  
+
 
 
 
