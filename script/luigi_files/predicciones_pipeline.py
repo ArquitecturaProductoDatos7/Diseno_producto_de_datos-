@@ -12,6 +12,7 @@ import funciones_req
 import funciones_mod
 import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
+from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
 
@@ -145,21 +146,22 @@ class InsertaInfoMensualRaw(CopyToTable):
 
 class InsertaMetadataInfoMensualRaw(CopyToTable):
     "Inserta el metadata de los datos mensuales" 
+
     #Mes a extraer
-    month = 4
-    year = 2020
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
 
     # Parametros del RDS
-    db_instance_id = 'db-dpa20'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
     # Para condectarse a la Base
-    database = 'db_incidentes_cdmx'
-    user = 'postgres'
-    password = 'passwordDB'
-    host = funciones_rds.db_endpoint(db_instance_id)
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
 
-    bucket = 'dpa20-incidentes-cdmx'
+    bucket = luigi.Parameter()
     root_path = 'bucket_incidentes_cdmx'
     folder_path = '9.predicciones'
 
@@ -188,13 +190,200 @@ class InsertaMetadataInfoMensualRaw(CopyToTable):
 
 
     def requires(self):
-        return {"infile1" : ExtraeInfoMensual(self.month, self.year, self.db_instance_id,
-                                              self.database, self.user, self.password,
-                                              self.subnet_group, self.security_group, self.host, self.bucket),
+        return {"infile1" : ExtraeInfoMensual(self.month, self.year, 
+                                              self.db_instance_id, self.subnet_group, self.security_group,
+                                              self.database, self.user, self.password, self.host,
+                                              self.bucket), 
                 "infile2" : InsertaInfoMensualRaw(self.month, self.year,
                                                   self.db_instance_id, self.subnet_group, self.security_group,
                                                   self.database, self.user, self.password, self.host,
                                                   self.bucket)}
+
+
+
+
+
+
+class Test1ForExtractInfoMensual(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Extract"
+
+     #Mes a extraer
+     month = luigi.IntParameter()
+     year = luigi.IntParameter()
+
+     db_instance_id = luigi.Parameter()
+     subnet_group = luigi.Parameter()
+     security_group = luigi.Parameter()
+
+     #Para conectarse a la base
+     db_name = luigi.Parameter()
+     db_user_name = luigi.Parameter()
+     db_user_password = luigi.Parameter()
+     host = luigi.Parameter()
+
+     bucket = luigi.Parameter()
+     root_path = 'bucket_incidentes_cdmx'
+     folder_path = '9.predicciones'
+
+     def requires(self):
+        return InsertaMetadataInfoMensualRaw(self.month, self.year,
+                                             self.db_instance_id, self.subnet_group, self.security_group,
+                                             self.db_name, self.db_user_name, self.db_user_password, self.host,
+                                             self.bucket)
+
+     def run(self):
+        prueba_extract = TestsForExtract()
+        prueba_extract.test_check_num_archivos_info_mensual()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos_info_mensual', 'SUCCESS', 'extract')
+
+        with self.output().open('w') as out_file:
+             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+
+     def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"raw/metadatos_prueba1_EXTRACT.csv")
+
+
+
+
+
+class Test2ForExtractInfoMensual(luigi.Task):
+     "Corre las pruebas unitarias para la parte de Extract"
+
+     #Mes a extraer
+     month = luigi.IntParameter()
+     year = luigi.IntParameter()
+
+     db_instance_id = luigi.Parameter()
+     subnet_group = luigi.Parameter()
+     security_group = luigi.Parameter()
+
+     #Para conectarse a la base
+     db_name = luigi.Parameter()
+     db_user_name = luigi.Parameter()
+     db_user_password = luigi.Parameter()
+     host = luigi.Parameter()
+
+     bucket = luigi.Parameter()
+     root_path = 'bucket_incidentes_cdmx'
+     folder_path = '9.predicciones'
+
+
+     def requires(self):
+        return InsertaMetadataInfoMensualRaw(self.month, self.year,
+                                             self.db_instance_id, self.subnet_group, self.security_group,
+                                             self.db_name, self.db_user_name, self.db_user_password, self.host,
+                                             self.bucket)
+
+     def run(self):
+        prueba_extract = TestsForExtract()
+        prueba_extract.test_check_num_registros_info_mensual()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros_info_mensual', 'SUCCESS', 'extract')
+
+        with self.output().open('w') as out_file:
+             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+
+     def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"raw/metadatos_prueba2_EXTRACT.csv")
+
+
+
+
+
+class InsertaMetadatosPruebasUnitariasExtractInfoMensual(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Extract" 
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+
+    #Mes a extraer
+    month = 4
+    year = 2020
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'
+    subnet_group = 'subnet_gp_dpa20'
+    security_group = 'sg-09b7d6fd6a0daf19a'
+    # Para condectarse a la Base
+    database = 'db_incidentes_cdmx'
+    user = 'postgres'
+    password = 'passwordDB'
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+    bucket = 'dpa20-incidentes-cdmx'
+     #Mes a extraer
+     month = luigi.IntParameter()
+     year = luigi.IntParameter()
+
+     db_instance_id = luigi.Parameter()
+     subnet_group = luigi.Parameter()
+     security_group = luigi.Parameter()
+
+     #Para conectarse a la base
+     db_name = luigi.Parameter()
+     db_user_name = luigi.Parameter()
+     db_user_password = luigi.Parameter()
+     host = luigi.Parameter()
+
+     bucket = luigi.Parameter()
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR")]
+
+    def rows(self):
+         #Leemos el df de metadatos
+         for file in ["infile1", "infile2"]:
+              with self.input()[file].open('r') as infile:
+                  for line in infile:
+                      yield line.strip("\n").split("\t")
+
+
+
+    def requires(self):
+        return  { "infile1": Test1ForExtractInfoMensual(self.month, self.year,
+                                             self.db_instance_id, self.subnet_group, self.security_group,
+                                             self.database, self.user, self.password,  self.host,
+                                             self.bucket),
+                  "infile2": Test2ForExtractInfoMensual(self.month, self.year,
+                                             self.db_instance_id, self.subnet_group, self.security_group,
+                                             self.database, self.user, self.password,  self.host,
+                                             self.bucket)}
+
+
+
+
+
 
 
 class CreaTablaCleanedIncidentesInfoMensual(PostgresQuery):

@@ -13,6 +13,7 @@ class TestsForExtract(marbles.core.TestCase):
     1.- Probar que el número de meses del periodo coincida con los archivos descargados
     2.- Probar que se descargaron todos los registros del periodo
     """
+
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
 
@@ -37,6 +38,20 @@ class TestsForExtract(marbles.core.TestCase):
         self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
 
 
+    def test_check_num_archivos_info_mensual(self):
+        #Numero de meses descargados
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT count(*) FROM raw.metadatos WHERE refine_ano=\'\"2020\"\' and refine_mes=\'\"4\"\';")
+        n_descargados = cursor.fetchone()
+        self.connection.commit()
+
+        #Para que falle la prueba
+        #n_periodo = 2
+        n_periodo = 1
+        self.assertEqual(n_descargados[0], n_periodo, note="El número de meses requerido no coincide con el número de meses descargados")
+
+
+
 
     def test_check_num_registros(self):
         cursor = self.connection.cursor()
@@ -49,6 +64,20 @@ class TestsForExtract(marbles.core.TestCase):
         self.connection.commit()
 
         self.assertEqual(n_rows, n_reg, note="El número de registros extraídos y el número de registros cargados no son iguales")
+
+
+    def test_check_num_registros_info_mensual(self):
+       cursor = self.connection.cursor()
+       cursor.execute("SELECT rows FROM raw.metadatos WHERE refine_ano=\'\"2020\"\' and refine_mes=\'\"4\"\';")
+       n_rows = cursor.fetchall()
+       self.connection.commit()
+
+       cursor.execute("select count(*) from raw.infomensual;")
+       n_reg = cursor.fetchall()
+       self.connection.commit()
+
+       self.assertEqual(n_rows, n_reg, note="El número de registros extraídos y el número de registros cargados no son iguales")
+
 
 
 
