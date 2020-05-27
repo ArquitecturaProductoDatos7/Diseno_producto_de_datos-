@@ -41,15 +41,16 @@ def MetricasBiasFairness(df_bias):
     prom_for=df_aequitas['for'].mean()
     prom_fnr=df_aequitas['fnr'].mean()
     metadata_bias = {'delegacion_max_FOR': [delegacion_max_for],
-        'delegacion_max_FNR': [delegacion_max_fnr], 'promedio_FOR': [prom_for],'promedio_FNR':
-                     [prom_fnr],'delegacion_min_FOR':[delegacion_min_for],
-                    'delegacion_min_FNR':[delegacion_min_fnr]}
+                     'delegacion_max_FNR': [delegacion_max_fnr], 
+                     'promedio_FOR': [prom_for],
+                     'promedio_FNR': [prom_fnr],
+                     'delegacion_min_FOR':[delegacion_min_for],
+                     'delegacion_min_FNR':[delegacion_min_fnr]}
 
     df = pd.DataFrame(metadata_bias, columns = ['delegacion_max_FOR', 'delegacion_max_FNR',
                                                'promedio_FOR','promedio_FNR',
                                                'delegacion_min_FOR','delegacion_min_FNR'])
-
-    return df_aequitas,df
+    return df_aequitas, df
 
 
 
@@ -65,7 +66,7 @@ def completa_metadatos_bias(meta, fname):
 
     otros_meta = pd.DataFrame({'fecha_de_ejecucion':fecha_de_ejecucion, 
                                'ip_address': ip_address,
-                               'usuario': usuario})
+                               'usuario': usuario},  index=[0])
 
 
     metadata = pd.concat([otros_meta, meta], axis=1, sort=False)

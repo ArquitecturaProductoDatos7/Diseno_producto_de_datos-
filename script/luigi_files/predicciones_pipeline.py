@@ -1,5 +1,5 @@
 # config: utf8
-import json, os, datetime, boto3, luigi, time, pickle
+import json, os, datetime, boto3, luigi, time, pickle, socket, getpass
 import luigi.contrib.s3
 from luigi.contrib.postgres import CopyToTable, PostgresQuery
 #from luigi.contrib import rdbms
@@ -48,8 +48,8 @@ class ExtraeInfoMensual(luigi.Task):
     Extrae la informacion de la API, segun el MES y ANO solicitado
     """
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     #Para la base
     db_instance_id = luigi.Parameter()
@@ -92,8 +92,8 @@ class ExtraeInfoMensual(luigi.Task):
                              self.root_path,
                              self.folder_path
                             )
-        return {'records':luigi.contrib.s3.S3Target(path=output_path+"raw/records_"+str(self.month)+"_"+str(self.year)+".json"),
-                'metadata':luigi.contrib.s3.S3Target(path=output_path+"raw/metadata_"+str(self.month)+"_"+str(self.year)+".json")}
+        return {'records':luigi.contrib.s3.S3Target(path=output_path+"raw/records_"+self.month+"_"+self.year+".json"),
+                'metadata':luigi.contrib.s3.S3Target(path=output_path+"raw/metadata_"+self.month+"_"+self.year+".json")}
 
 
 
@@ -102,8 +102,8 @@ class ExtraeInfoMensual(luigi.Task):
 class InsertaInfoMensualRaw(CopyToTable):
     "Inserta raw de los datos mensuales" 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -148,8 +148,8 @@ class InsertaMetadataInfoMensualRaw(CopyToTable):
     "Inserta el metadata de los datos mensuales" 
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -208,8 +208,8 @@ class Test1ForExtractInfoMensual(luigi.Task):
      "Corre las pruebas unitarias para la parte de Extract"
 
      #Mes a extraer
-     month = luigi.IntParameter()
-     year = luigi.IntParameter()
+     month = luigi.Parameter()
+     year = luigi.Parameter()
 
      db_instance_id = luigi.Parameter()
      subnet_group = luigi.Parameter()
@@ -223,7 +223,7 @@ class Test1ForExtractInfoMensual(luigi.Task):
 
      bucket = luigi.Parameter()
      root_path = 'bucket_incidentes_cdmx'
-     folder_path = '9.predicciones'
+     folder_path = '0.pruebas_unitarias'
 
      def requires(self):
         return InsertaMetadataInfoMensualRaw(self.month, self.year,
@@ -246,7 +246,7 @@ class Test1ForExtractInfoMensual(luigi.Task):
                              self.root_path,
                              self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"raw/metadatos_prueba1_EXTRACT.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_EXTRACT_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
 
 
 
@@ -256,8 +256,8 @@ class Test2ForExtractInfoMensual(luigi.Task):
      "Corre las pruebas unitarias para la parte de Extract"
 
      #Mes a extraer
-     month = luigi.IntParameter()
-     year = luigi.IntParameter()
+     month = luigi.Parameter()
+     year = luigi.Parameter()
 
      db_instance_id = luigi.Parameter()
      subnet_group = luigi.Parameter()
@@ -295,7 +295,8 @@ class Test2ForExtractInfoMensual(luigi.Task):
                              self.root_path,
                              self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"raw/metadatos_prueba2_EXTRACT.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_EXTRACT_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
+
 
 
 
@@ -304,51 +305,20 @@ class Test2ForExtractInfoMensual(luigi.Task):
 class InsertaMetadatosPruebasUnitariasExtractInfoMensual(CopyToTable):
     "Inserta los metadatos para las pruebas unitarias en Extract" 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     db_instance_id = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
 
     #Para conectarse a la base
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
-
-    #Mes a extraer
-    month = 4
-    year = 2020
-
-    # Parametros del RDS
-    db_instance_id = 'db-dpa20'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    # Para condectarse a la Base
-    database = 'db_incidentes_cdmx'
-    user = 'postgres'
-    password = 'passwordDB'
-    host = funciones_rds.db_endpoint(db_instance_id)
-
-    bucket = 'dpa20-incidentes-cdmx'
-     #Mes a extraer
-     month = luigi.IntParameter()
-     year = luigi.IntParameter()
-
-     db_instance_id = luigi.Parameter()
-     subnet_group = luigi.Parameter()
-     security_group = luigi.Parameter()
-
-     #Para conectarse a la base
-     db_name = luigi.Parameter()
-     db_user_name = luigi.Parameter()
-     db_user_password = luigi.Parameter()
-     host = luigi.Parameter()
-
-     bucket = luigi.Parameter()
 
     # Nombre de la tabla a insertar
     table = 'tests.pruebas_unitarias'
@@ -425,21 +395,33 @@ class LimpiaInfoMensual(PostgresQuery):
     """
     
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-    
-    #Para la creacion de la base
-    db_instance_id =  luigi.Parameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    # Para condectarse a la Base
     database = luigi.Parameter()
     user = luigi.Parameter()
     password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
     host = luigi.Parameter()
-    
 
-    table = ""
-    query = """
+    bucket = luigi.Parameter()
+
+    #clase = InsertaMetadataInfoMensualRaw()
+    #mes = getattr(clase,'month')
+    #ano = getattr(clase,'year')
+
+    table=''
+    query =""
+
+    def run(self):
+        connection = self.output().connect()
+        connection.autocommit = self.autocommit
+        cursor = connection.cursor()
+        sql="""
             INSERT INTO cleaned.IncidentesVialesInfoMensual
             SELECT (registros->>'hora_creacion')::TIME,
                    remove_points(LOWER(registros->>'delegacion_inicio')),
@@ -452,26 +434,37 @@ class LimpiaInfoMensual(PostgresQuery):
                    unaccent(remove_points(LOWER(registros->>'incidente_c4'))),
                    unaccent(remove_points(LOWER(registros->>'codigo_cierre')))
             FROM raw.InfoMensual
-            WHERE registros->>'hora_creacion' LIKE '%\:%' and registros->>'mes'=month and registros->>'ano'=year;
-            """
+            WHERE registros->>'hora_creacion' LIKE '%\:%' and registros->>'mes'=\'{}\' and registros->>'ano'=\'{}\'
+            """.format(self.month, self.year)
+
+        #logger.info('Executing query from task: {name}'.format(name=self.__class__))
+        cursor.execute(sql)
+
+        # Update marker table
+        self.output().touch(connection)
+
+        # commit and close connection
+        connection.commit()
+        connection.close()
 
     def requires(self):
-        # Indica que se debe hacer primero las tareas especificadas aqui
-        return  [CreaTablaCleanedIncidentesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password), 
-                 #FuncionRemovePoints(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
-                 #FuncionUnaccent(self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password),
-                 #InsertaMetadatosPruebasUnitariasExtract()
-                InsertaInfoMensualRaw(self.month,self.year,self.db_instance_id,self.subnet_group,self.security_group, self.database, self.user,self.password,self.host)]
+        return  [CreaTablaCleanedIncidentesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
+                                                       self.host, self.database, self.user, self.password),
+                 InsertaMetadatosPruebasUnitariasExtractInfoMensual(self.month, self.year,
+                                                            self.db_instance_id, self.subnet_group, self.security_group,
+                                                            self.database, self.user, self.password, self.host, self.bucket)]
 
     
-class InsertaMetadatosCLEANEDInfoMensual(luigi.Task):
+class InsertaMetadatosCLEANEDInfoMensual(CopyToTable):
     "Esta funcion inserta los metadatos de CLEANED"
-    
-    #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
 
-    db_instance_id =  luigi.Parameter()
+    #Mes a extraer
+    month = luigi.Parameter()
+    year = luigi.Parameter()
+    
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    # Para condectarse a la Base
     database = luigi.Parameter()
     user = luigi.Parameter()
     password = luigi.Parameter()
@@ -479,11 +472,11 @@ class InsertaMetadatosCLEANEDInfoMensual(luigi.Task):
     security_group = luigi.Parameter()
     host = luigi.Parameter()
 
+    bucket = luigi.Parameter()
+
     def requires(self):
-        return [LimpiaInfoMensual(self.month, self.year, self.db_instance_id, self.database, self.user,
-                                    self.password, self.subnet_group, self.security_group, self.host)]
-                #CreaTablaCleanedMetadatos(self.db_instance_id, self.subnet_group, self.security_group,
-                                          #self.host, self.database, self.user, self.password)]
+        return LimpiaInfoMensual(self.month, self.year, self.db_instance_id, self.database, self.user,
+                                    self.password, self.subnet_group, self.security_group, self.host, self.bucket)
 
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
@@ -498,27 +491,26 @@ class InsertaMetadatosCLEANEDInfoMensual(luigi.Task):
     registros_eliminados = 'Deleted 0 rows'
 
     table = "cleaned.Metadatos"
-    
-    
+
     columns=[("fecha_ejecucion", "VARCHAR"),
              ("ip_address", "VARCHAR"),
              ("usuario", "VARCHAR"),
              ("id_tarea", "VARCHAR"),
              ("estatus_tarea", "VARCHAR"),
              ("registros_eliminados", "VARCHAR")]
-             
+
 
     def rows(self):
         r=[(self.fecha_de_ejecucion,self.ip_address,self.usuario,self.task_id,self.task_status,self.registros_eliminados)]
         return(r)
 
-    
+
 class Test1ForCleanInfoMensual(luigi.Task): 
     "Corre las pruebas unitarias para la parte de Clean"
     
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
     
     #Parametros
     db_instance_id = luigi.Parameter()
@@ -534,7 +526,8 @@ class Test1ForCleanInfoMensual(luigi.Task):
     folder_path = luigi.Parameter()
 
     def requires(self):
-        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name, self.db_user_name,self.db_user_password, self.subnet_group, self.security_group, self.host)
+        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name, self.db_user_name,
+                                                  self.db_user_password, self.subnet_group, self.security_group, self.host, self.bucket)
 
     def run(self):
         prueba_clean_marbles = TestClean()
@@ -551,15 +544,19 @@ class Test1ForCleanInfoMensual(luigi.Task):
                            self.root_path,
                            self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_CLEAN_info_mensual.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_CLEAN_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
+
+
+
+
 
 
 class Test2ForCleanInfoMensual(luigi.Task): 
     "Corre las pruebas unitarias para la parte de Clean"
     
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
     
     #Parametros
     db_instance_id = luigi.Parameter()
@@ -576,7 +573,8 @@ class Test2ForCleanInfoMensual(luigi.Task):
 
     def requires(self):
         return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name,
-                                                  self.db_user_name, self.db_user_password, self.subnet_group, self.security_group, self.host)
+                                                  self.db_user_name, self.db_user_password, self.subnet_group, self.security_group, self.host,
+                                                  self.bucket)
 
     def run(self):
         prueba_clean_marbles = TestClean()
@@ -593,7 +591,8 @@ class Test2ForCleanInfoMensual(luigi.Task):
                            self.root_path,
                            self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_CLEAN_info_mensual.csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_CLEAN_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
+
 
 
 
@@ -601,23 +600,22 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
     "Inserta los metadatos para las pruebas unitarias en Clean"
     
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = "4" #luigi.IntParameter()
+    year = "2020" #luigi.IntParameter()
     
     # Parametros del RDS
-    db_instance_id = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
+    db_instance_id = 'db-dpa20'  #luigi.Parameter()
+    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
+    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
 
     # Para condectarse a la Base
-    database = luigi.Parameter()
-    user = luigi.Parameter()
-    password = luigi.Parameter()
-    host = funciones_rds.db_endpoint(db_instance_id)
+    database =  'db_incidentes_cdmx' # luigi.Parameter()
+    user =  'postgres' #luigi.Parameter()
+    password = 'passwordDB' #luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
 
-    #Parametros del bucket
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
     folder_path = '0.pruebas_unitarias'
 
     # Nombre de la tabla a insertar
