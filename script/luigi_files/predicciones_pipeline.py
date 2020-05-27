@@ -463,6 +463,187 @@ class LimpiaInfoMensual(PostgresQuery):
                  #InsertaMetadatosPruebasUnitariasExtract()
                 InsertaInfoMensualRaw(self.month,self.year,self.db_instance_id,self.subnet_group,self.security_group, self.database, self.user,self.password,self.host)]
 
+    
+class InsertaMetadatosCLEANEDInfoMensual(luigi.Task):
+    "Esta funcion inserta los metadatos de CLEANED"
+    
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    db_instance_id =  luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+
+    def requires(self):
+        return [LimpiaInfoMensual(self.month, self.year, self.db_instance_id, self.database, self.user,
+                                    self.password, self.subnet_group, self.security_group, self.host)]
+                #CreaTablaCleanedMetadatos(self.db_instance_id, self.subnet_group, self.security_group,
+                                          #self.host, self.database, self.user, self.password)]
+
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    date_time = datetime.datetime.now()
+    task = 'InsertaMetadatosCLEANEDInfoMensual'
+
+    fecha_de_ejecucion = date_time.strftime("%d/%m/%Y %H:%M:%S")
+    ip_address = ip_address
+    usuario = getpass.getuser()
+    task_id = task
+    task_status = 'Success'
+    registros_eliminados = 'Deleted 0 rows'
+
+    table = "cleaned.Metadatos"
+    
+    
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("id_tarea", "VARCHAR"),
+             ("estatus_tarea", "VARCHAR"),
+             ("registros_eliminados", "VARCHAR")]
+             
+
+    def rows(self):
+        r=[(self.fecha_de_ejecucion,self.ip_address,self.usuario,self.task_id,self.task_status,self.registros_eliminados)]
+        return(r)
+
+    
+class Test1ForCleanInfoMensual(luigi.Task): 
+    "Corre las pruebas unitarias para la parte de Clean"
+    
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+    
+    #Parametros
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name, self.db_user_name,self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+    def run(self):
+        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles.test_islower_w_marbles()
+        #metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles_info_mensual','success','clean')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_CLEAN_info_mensual.csv")
+
+
+class Test2ForCleanInfoMensual(luigi.Task): 
+    "Corre las pruebas unitarias para la parte de Clean"
+    
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+    
+    #Parametros
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    host = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = luigi.Parameter()
+
+    def requires(self):
+        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name,
+                                                  self.db_user_name, self.db_user_password, self.subnet_group, self.security_group, self.host)
+
+    def run(self):
+        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles.test_correct_type()
+        #metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type_info_mensual','success','clean')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_CLEAN_info_mensual.csv")
+
+
+
+class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Clean"
+    
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+    
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    # Para condectarse a la Base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)
+
+    #Parametros del bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+    folder_path = '0.pruebas_unitarias'
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        for file in ["infile1", "infile2"]:
+            with self.input()[file].open('r') as infile:
+                for line in infile:
+                    yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1": Test1ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group,
+                                                      self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path, self.folder_path),
+                  "infile2": Test2ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path, self.folder_path)}
+    
 
 
 
