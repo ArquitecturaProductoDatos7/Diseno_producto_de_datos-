@@ -1302,10 +1302,10 @@ class SeleccionaMejorModelo(luigi.Task):
                              format(self.bucket,
                              self.root_path
                             )
-        return {'outfile1' : luigi.contrib.s3.S3Target(path=output_path+self.folder_path_predicciones+'/predicciones_modelo.csv'),
-                'outfile2' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/'+self.fname, format=luigi.format.Nop),
-                'outfile3' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv'),
-                'outfile4' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_mejor_modelo.csv')}
+        return {'predict_train' : luigi.contrib.s3.S3Target(path=output_path+self.folder_path_predicciones+'/predicciones_modelo.csv'),
+                'mejor_modelo' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/'+self.fname, format=luigi.format.Nop),
+                'df_bias' : luigi.contrib.s3.S3Target(path=output_path+self.folder_bias+'/df_bias.csv'),
+                'meta_mejor_modelo' : luigi.contrib.s3.S3Target(path=output_path+self.folder_modelo_final+'/metadata_mejor_modelo.csv')}
 
 
 
@@ -1336,7 +1336,7 @@ class InsertaMetadatosMejorModelo(CopyToTable):
 
     def rows(self):
         #Leemos el df de metadatos
-        with self.input()['infile1']['outfile4'].open('r') as infile:
+        with self.input()['infile1']['meta_mejor_modelo'].open('r') as infile:
               for line in infile:
                   yield line.strip("\n").split("\t")
 
