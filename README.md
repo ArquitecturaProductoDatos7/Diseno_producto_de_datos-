@@ -94,13 +94,16 @@ De igual manera, es importante mencionar que el producto de datos sólo es una h
 
 ##### 5.1 Atributo Protegido
 
-El producto de datos desarrollado para el C5, tiene como objetivo etiquetar las llamadas entrantes al centrol de control con una probabilidad asignada determinada con un modelo de predicción. De acuerdo a la base de datos se decidió tomar como atributo protegido la variable *delegación_inicio*, y se elige esta variable porque queremos evitar un sesgo socioeconómico, en el sentido de que las delegaciones de la Cuidad de México son heterogéneas ya que pueden ser distintas por su nivel de infraestructura, características de su población o su ubicación. Y justamente lo que queremos evitar es que existan delegaciones marginadas o no atendidas por el simple hecho de tener atributos que la beneficien en comparación con otras.
+El producto de datos desarrollado para el C5, tiene como objetivo etiquetar las llamadas entrantes al centrol de control con una probabilidad asignada determinada con un modelo de predicción. De acuerdo a la base de datos se decidió tomar como atributo protegido la variable *delegación_inicio*, y se elige esta variable porque queremos evitar un sesgo socioeconómico, en el sentido de que las delegaciones de la Cuidad de México son heterogéneas ya que pueden ser distintas por su nivel de infraestructura, características de su población o su ubicación. Y justamente lo que se desea evitar es que existan delegaciones marginadas o no atendidas por el simple hecho de tener atributos que la beneficien en comparación con otras.
 
-##### 5.1 Métrica de *fairness*
+##### 5.2 Métricas *Bias* y *Fairness*
 
-La métrica para controlar el *fariness* de nuestro modelo es **FN/GN Parity** debido a que el C5 busca abarcar la mayor parte de la población de la cuidad de México y se cataloga como servicio de asistencia porque justamente se busca proporcionar algun servicio de emergencia a ciertos individuos. Debido a esto, el objetivo del producto de datos se sitúa en dar asistenica a *personas levantan el reporte(comunicandose al centro del control) y al mismo tiempo se espera que estas personas que se comunicaron realmente necesiten el servicio solicitado*, dado que sólo con la llamada telefónica el C5 se entera de la situación y puede mandar el recurso al lugar reportado.
+Se determinó que el producto de datos es tipo **assitive** porque es una intervención cuyo objetivo es proporcionar una lista de probabilidades priorizada para determinar que llamadas entrantes al C5 son *verdaderas* y se eligieron 2 métricas para evaluar el modelo: 
+* **False Negative Rate** - Se busca que todas las delegaciones  (atributo protegido) tengan el mismo FNR, es decir no privilegar a ciertas delegaciones sobre otras en cuanto a atención.
+* **False Omission Rate** - Para medir la proporción de falsos negativos que se rechazan incorrectamente y en este caso interesa conocer su hay un sesgo hacia alguna delegación en este sentido, debido a que se busca tener unna paridad de FNR (primera mètrica) en todas las delegaciones.
 
 
 ## Referencias
 
-C5:
+[C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4)
+[Aequitas](https://dssg.github.io/aequitas/examples/compas_demo.html)
