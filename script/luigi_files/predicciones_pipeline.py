@@ -523,7 +523,7 @@ class Test1ForCleanInfoMensual(luigi.Task):
 
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
-    folder_path = luigi.Parameter()
+    folder_path = '0.pruebas_unitarias'
 
     def requires(self):
         return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name, self.db_user_name,
@@ -531,7 +531,7 @@ class Test1ForCleanInfoMensual(luigi.Task):
 
     def run(self):
         prueba_clean_marbles = TestClean()
-        prueba_clean_marbles.test_islower_w_marbles()
+        prueba_clean_marbles.test_islower_w_marbles_info_mensual()
         #metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles_info_mensual','success','clean')
 
@@ -569,7 +569,7 @@ class Test2ForCleanInfoMensual(luigi.Task):
 
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
-    folder_path = luigi.Parameter()
+    folder_path = '0.pruebas_unitarias'
 
     def requires(self):
         return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name,
@@ -578,7 +578,7 @@ class Test2ForCleanInfoMensual(luigi.Task):
 
     def run(self):
         prueba_clean_marbles = TestClean()
-        prueba_clean_marbles.test_correct_type()
+        prueba_clean_marbles.test_correct_type_info_mensual()
         #metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
         metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type_info_mensual','success','clean')
 
@@ -616,7 +616,7 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
 
     bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
     root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
-    folder_path = '0.pruebas_unitarias'
+    #folder_path = '0.pruebas_unitarias'
 
     # Nombre de la tabla a insertar
     table = 'tests.pruebas_unitarias'
@@ -639,8 +639,8 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
 
     def requires(self):
         return  { "infile1": Test1ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group,
-                                                      self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path, self.folder_path),
-                  "infile2": Test2ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path, self.folder_path)}
+                                                      self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path),
+                  "infile2": Test2ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path)}
     
 
 
