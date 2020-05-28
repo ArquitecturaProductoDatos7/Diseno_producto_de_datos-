@@ -553,11 +553,11 @@ class Test1ForCleanInfoMensual(luigi.Task):
 
 class Test2ForCleanInfoMensual(luigi.Task): 
     "Corre las pruebas unitarias para la parte de Clean"
-    
+
     #Mes a extraer
     month = luigi.Parameter()
     year = luigi.Parameter()
-    
+
     #Parametros
     db_instance_id = luigi.Parameter()
     subnet_group = luigi.Parameter()
@@ -598,25 +598,24 @@ class Test2ForCleanInfoMensual(luigi.Task):
 
 class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
     "Inserta los metadatos para las pruebas unitarias en Clean"
-    
+
     #Mes a extraer
-    month = "4" #luigi.IntParameter()
-    year = "2020" #luigi.IntParameter()
-    
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
     # Parametros del RDS
-    db_instance_id = 'db-dpa20'  #luigi.Parameter()
-    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
-    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
 
     # Para condectarse a la Base
-    database =  'db_incidentes_cdmx' # luigi.Parameter()
-    user =  'postgres' #luigi.Parameter()
-    password = 'passwordDB' #luigi.Parameter()
-    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
 
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
-    #folder_path = '0.pruebas_unitarias'
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
     # Nombre de la tabla a insertar
     table = 'tests.pruebas_unitarias'
@@ -641,11 +640,59 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
         return  { "infile1": Test1ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group,
                                                       self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path),
                   "infile2": Test2ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path)}
-    
 
 
 
 
 
+class PreprocesoBaseInfoMensual(luigi.Task):
+    """  """
+    #Mes a extraer
+    month = "4" #luigi.IntParameter()
+    year = "2020" #luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'  #luigi.Parameter()
+    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
+    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    # Para condectarse a la Base
+    database =  'db_incidentes_cdmx' # luigi.Parameter()
+    user =  'postgres' #luigi.Parameter()
+    password = 'passwordDB' #luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+
+    pre_path = '1.preprocesamiento'
+    file_name = 'base_procesada_info_mensual'
+
+    def requires(self):
+       return InsertaMetadatosPruebasUnitariasCleanInfoMensual(self.month, self.year,
+                                                               self.db_instance_id, self.subnet_group, self.security_group,
+                                                               self.database, self.user, self.password, self.host,
+                                                               self.bucket, self.root_path)
+
+    def run(self):
+       dataframe = funciones_rds.obtiene_df(self.database, self.user, self.password, self.host, "incidentesvialesinfomensual" , "cleaned")
+       dataframe = funciones_mod.preprocesamiento_variable(dataframe)
+       dataframe = funciones_mod.elimina_na_de_variable_delegacion(dataframe)
+
+#       ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
+#       s3_resource = ses.resource('s3')
+#       obj = s3_resource.Bucket(self.bucket)
+
+       with self.output().open('w') as out_file:
+            dataframe.to_csv(out_file, sep='\t', encoding='utf-8', index=None)
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/{}.csv".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.pre_path,
+                             self.file_name
+                           )
+       return luigi.contrib.s3.S3Target(path=output_path)
 
 

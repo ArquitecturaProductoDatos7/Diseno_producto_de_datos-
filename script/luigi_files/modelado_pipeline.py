@@ -232,7 +232,7 @@ class PreprocesoBase(luigi.Task):
     def run(self):
        host = funciones_rds.db_endpoint(self.db_instance_id)
 
-       dataframe = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host)
+       dataframe = funciones_rds.obtiene_df(self.db_name, self.db_user_name, self.db_user_password, host, 'incidentesviales', 'cleaned')
        dataframe = funciones_mod.preprocesamiento_variable(dataframe)
        dataframe = funciones_mod.crea_variable_target(dataframe)
        dataframe =  funciones_mod.elimina_na_de_variable_delegacion(dataframe)

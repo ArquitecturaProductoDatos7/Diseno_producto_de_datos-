@@ -112,7 +112,7 @@ class TestClean(marbles.core.TestCase):
     """
     #Buscamos el archivo del bucket en la S3
     data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
-    
+
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
 
@@ -122,7 +122,7 @@ class TestClean(marbles.core.TestCase):
         column1 = self.data['delegacion_inicio']
 
         self.assertTrue(column1.str.islower().all())
-    
+
     def test_islower_w_marbles_info_mensual(self):
         column1 = self.dataframe['delegacion_inicio']
 
@@ -135,9 +135,10 @@ class TestClean(marbles.core.TestCase):
 
         #Con este ejemplo no pasaría la prueba
         #self.assertTrue(mes.dtype == np.object, msg="El tipo de variable no es el correcto")
-        
+
     def test_correct_type_info_mensual(self):
         mes=self.dataframe['mes']
+        print(mes.dtype)
 
         self.assertTrue(mes.dtype == np.int64, msg="El tipo de variable no es el correcto")
 

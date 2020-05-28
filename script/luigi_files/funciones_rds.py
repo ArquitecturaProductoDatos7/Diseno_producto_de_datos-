@@ -123,12 +123,12 @@ def create_schemas(db_name, db_user, db_pass, db_endpoint):
         print('***** Schema raw created *****\n')
     except Exception as error:
         print ("***** Unable to create schema raw *****\n", error)
-    
+
     cursor.close()
     connection.close()
     return exito
-    
-    
+
+
 def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
     """
     Funcion que crea tablas (datos y metadatos) en el esquema raw.
@@ -156,7 +156,7 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
                                               clas_con_f_alarma VARCHAR
                                              );
           """)
-    
+
     sql2 = ("""
             CREATE TABLE raw.metadatos(dataset TEXT,
                                        timezone TEXT,
@@ -171,7 +171,7 @@ def create_raw_tables(db_name, db_user, db_pass, db_endpoint):
                                        formato_archivo TEXT
                                       );
           """)
-     
+
     sql3= ("""
             CREATE TABLE raw.IncidentesVialesJson(
                                                   properties JSON NOT NULL
@@ -275,26 +275,23 @@ def bulk_insert_cleaned(meta, db_name, db_user, db_pass, db_endpoint):
 
 
 
-def obtiene_df(db_name, db_user, db_pass, db_endpoint):
-    "Inserta el metadata del esquema CLEANED"
+def obtiene_df(db_name, db_user, db_pass, db_endpoint, db_table, db_schema):
+    "Lee como df la tabla db_table del esquema db_schema en la base de datos"
     try:
-        #connection = connect(db_name, db_user, db_pass, db_endpoint)
-        #cursor = connection.cursor()
-        #dataframe = psql.read_sql("SELECT * FROM cleaned.incidentesviales LIMIT 500000;", connection)
-
         engine_string = "postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}".format( 
-             user = db_user, 
+             user = db_user,
              password = db_pass,
              host = db_endpoint,
-             port = "5432", 
+             port = "5432",
              database = db_name
              )
-
         #create sqlalchemy engine
         engine = create_engine(engine_string)
 
         #read a table from database
-        dataframe = pd.read_sql_table(table_name='incidentesviales', con=engine, schema='cleaned')
+#        dataframe = pd.read_sql_table(table_name='incidentesviales', con=engine, schema='cleaned')
+        dataframe = pd.read_sql_table(table_name=db_table, con=engine, schema=db_schema)
+
     except (Exception) as error:
         print("***** Failed getting df: {} *****".format(error))
 
