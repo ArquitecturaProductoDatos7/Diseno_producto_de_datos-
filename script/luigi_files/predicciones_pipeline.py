@@ -14,6 +14,7 @@ import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
+from modelado_pipeline import separabase
 
 
 
@@ -694,5 +695,59 @@ class PreprocesoBaseInfoMensual(luigi.Task):
                              self.file_name
                            )
        return luigi.contrib.s3.S3Target(path=output_path)
+
+    
+
+class ImputacionesBaseInfoMensual(luigi.Task):
+    "Esta tarea hace la imputacion de la base"
+    
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    db_name = luigi.Parameter()
+    db_user_name = luigi.Parameter()
+    db_user_password = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Parametros del Bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+    #Para la tarea actual
+    folder_path = '3.imputaciones'
+
+    def requires(self):
+        return {'infiles1': SeparaBase(self.db_instance_id, self.db_name, self.db_user_name,
+                                     self.db_user_password, self.subnet_group, self.security_group,
+                                     self.bucket, self.root_path),
+                'infiles2': PreprocesoBaseInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group,self.db_name, self.db_user_name, self.db_user_password, self.bucket, self.root_path)}
+
+
+    def run(self):
+       #Se abren los archivos
+        with self.input()['infiles1']['X_train'].open('r') as infile1:
+            X_train = pd.read_csv(infile1, sep="\t")
+        with self.input()['infiles2'].open('r') as infile2:
+            base_procesada_info_mensual = pd.read_csv(infile2, sep="\t")
+        
+
+       #Se realizan las imputaciones
+       [X_train, base_imputada_info_mensual] = funciones_mod.imputacion_variable_delegacion(X_train, base_procesada_info_mensual)
+
+       #Se guardan los archivos
+        with self.output().open('w') as outfile2:
+            base_imputada_info_mensual.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
+
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+        return luigi.contrib.s3.S3Target(path=output_path+'base_imputada_info_mensual.csv')
+               
 
 
