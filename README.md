@@ -69,6 +69,10 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 * 26) **SeleccionaModelo** - En esta tarea se hace el *grid search* de los modelos para elegir el mejor modelo, y tiene como requerimiento la tarea de que la variables tenga el formato *One-hot encoder*. De igual manera sube el archivo *.pkl* a un bucket con los parámetros de la selección del modelo. Hasta el momento se ha realizado únicamente un modelo de *RandomForest<br>
 * 27) **InsertaMetadatosModelo** - Con esta última tarea se leen el data frame de la metadata generada por el Modelo, y se inserta la tabla de *modelo.Metadatos*, requiere que la el esquema de los metadatos del modelo ya este creado y que se realice la tarea de *SeleccionaModelo*.<br> <hr> 
 
+#### Modelo
+
+Después de evaluar los 3 modelos (Random Forest, Regresión Logística y Xgboost), junto con el grid search de cada uno se obtuvo que las mejores predicciones son con el modelo XGboost, por lo que fue el modelo con el cual se realizaron las propabilidades de la variable target. 
+
 ####  DAG
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
@@ -100,10 +104,20 @@ El producto de datos desarrollado para el C5, tiene como objetivo etiquetar las 
 
 Se determinó que el producto de datos es tipo **assitive** porque es una intervención cuyo objetivo es proporcionar una lista de probabilidades priorizada para determinar que llamadas entrantes al C5 son *verdaderas* y se eligieron 2 métricas para evaluar el modelo: 
 * **False Negative Rate** - Se busca que todas las delegaciones  (atributo protegido) tengan el mismo FNR, es decir no privilegar a ciertas delegaciones sobre otras en cuanto a atención.
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/FNR.png)
+
+Se acuerdo con esta primer métrica se observa que por ejemplo en las delegaciones de Tlalpan y Álvaro Obregón son en las que el modelo elegido predice incorrectamente en mayor número de veces. En el caso de Tlalpan el 92% de la veces las llamadas que eran *verdaderas* la etiqueta con baja probabilidad o no *verdaderas*, justo por el hecho de priorizar las que tengan mayor probabilidad y buscar que haya cierta paridad en grupo protegido respecto a esta métrica.
+
+
 * **False Omission Rate** - Para medir la proporción de falsos negativos que se rechazan incorrectamente y en este caso interesa conocer su hay un sesgo hacia alguna delegación en este sentido, debido a que se busca tener unna paridad de FNR (primera mètrica) en todas las delegaciones.
 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/FOR.png)
+
+De igual manera en la gráfica del FOR se tienen 2 delegaciones con esa métrica alta, estas son Milpa y Cuahutemoc en las cuales hay mayor numero de casos en los que se los falsos negativos son etiquetados incorrectamente como falsos.
+
+De igual manera, se obutvo el **FOR diparity** y el **FNR diparity** para completar el análsis y poder realizar una comparación entre una delegación como punto de referencia para determinar la disparidad entre todas las delegaciones respecto al *benchmark* elegido. En este caso la delegación de referencia fue Iztapalapa que es la delegación que tiene mayor número de ocurrencias y justamente puede reflejar un mayor acercamiento del comportamiento de los datos para el análisis. 
 
 ## Referencias
 
-[C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4)
+[C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4) <br>
 [Aequitas](https://dssg.github.io/aequitas/examples/compas_demo.html)
