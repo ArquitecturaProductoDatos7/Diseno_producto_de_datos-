@@ -15,7 +15,6 @@ from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasCl
 from modelado_pipeline import SeparaBase, SeleccionaMejorModelo
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
-from modelado_pipeline import separabase
 
 
 
@@ -798,9 +797,6 @@ class DummiesBaseInfoMensual(luigi.Task):
        #Se hace el one-hot encoder y se obtiene la base lista para el modelo
        [X_info_mensual, X_info_mensual] = funciones_mod.dummies_para_categoricas(X_info_mensual, X_info_mensual)
 
-       #Se agregan las columnas que faltan
-       X_info_mensual
-
        #Se guarda el archivo
        with self.output().open('w') as outfile1:
             X_info_mensual.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
@@ -886,6 +882,61 @@ class InsertaMetadatosFeatuEnginInfoMensual(CopyToTable):
 
 
 # LUIGI TASK PARA ANADIR LAS COLUMNAS QUE FALTAN (Bren)
+class InsertaColumnasInfoMensual(luigi.Task):
+    """Esta tarea inserta las columnas faltantes al df de Info Mensual para el modelo"""
+    #Mes a extraer
+    month = luigi.Parameter()
+    year = luigi.Parameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Para condectarse a la Base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+    #Parametros del bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+    #Para la tarea actual
+    folder_path = '4.input_modelo'
+
+
+    def requires(self):
+        return {"infiles1" : DummiesBaseInfoMensual(self.month, self.year,
+                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                      self.database, self.user, self.password, self.host,
+                                      self.bucket, self.root_path),
+                "infiles2" : InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,
+                                                     self.db_instance_id, self.subnet_group, self.security_group,
+                                                     self.database, self.user, self.password, self.host,
+                                                     self.bucket, self.root_path)}
+
+
+
+    def run(self):
+        with self.input()['infiles1'].open('r') as infile1:
+            X_info_mensual = pd.read_csv(infile1, sep="\t")
+        #Se anaden las columnas
+        X_info_mensual.insert(28, "tipo_entrada_llamada del 066", 0)
+        X_info_mensual.insert(32, "tipo_entrada_zello", 0)
+
+        #Se guarda el archivo
+        with self.output().open('w') as outfile1:
+            X_info_mensual.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
+
+
+    def output(self):
+       output_path = "s3://{}/{}/{}/".\
+                      format(self.bucket,
+                             self.root_path,
+                             self.folder_path,
+                            )
+       return luigi.contrib.s3.S3Target(path=output_path+'X_input_info_mensual_mes_'+self.month+'_ano_'+self.year+'.csv')
+
 
 
 
@@ -912,47 +963,48 @@ class PrediccionesInfoMensual(luigi.Task):
     folder_path = '9.predicciones'
 
     def requires(self):
-        return {"infile1" : DummiesBaseInfoMensual(self.month, self.year,
-                                                   self.db_instance_id, self.subnet_group, self.security_group,
-                                                   self.database, self.user, self.password, self.host,
-                                                   self.bucket, self.root_path),
-                "infile2" : SeleccionaMejorModelo(self.db_instance_id, self.database, self.user,
-                                                  self.password, self.subnet_group, self.security_group, self.host)}
+        return {"infile1" : InsertaColumnasInfoMensual(self.month, self.year,
+                                                       self.db_instance_id, self.subnet_group, self.security_group,
+                                                       self.database, self.user, self.password, self.host,
+                                                       self.bucket, self.root_path)}
 
 
     def run(self):
         with self.input()['infile1'].open('r') as infile1:
             X_info_mensual = pd.read_csv(infile1, sep="\t")
 
-#        with self.input()['infile2']['mejor_modelo'].open('r') as infile2:
-#            pickle.loads(mejor_modelo, infile2)
-        #lo extraemos del s3
+        #extraemos el modelo del s3
         ses = boto3.session.Session(profile_name='default', region_name='us-east-1')
         s3_resource = boto3.client('s3')
-        path_to_file = '{}/{}/{}'.format(self.root_path, '7.modelo_final', 'xgb_n_estimators_1_learning_rate_0.25_subsample_1.0_max_depth_10.pkl')
+        response = s3_resource.list_objects(Bucket=self.bucket, Prefix='{}/{}/'.format(self.root_path, '7.modelo_final'))
+        for file in response['Contents']:
+            fname = file['Key']
+            if fname.endswith('.pkl'):
+               path_to_file = fname
+
         response = s3_resource.get_object(Bucket=self.bucket, Key=path_to_file)
         body = response['Body'].read()
         mejor_modelo = pickle.loads(body)
 
-        print(X_info_mensual.head)
         #hacemos las predicciones de la etiqueta y de las probabilidades
         ynew_proba = mejor_modelo.predict_proba(X_info_mensual)
         ynew_etiqueta = mejor_modelo.predict(X_info_mensual)
-        metadata = funciones_mod.metadata_predicciones(self.month, self.year)
+
+        metadata = funciones_mod.metadata_predicciones(self.month, self.year, path_to_file.split('/',3)[2])
 
         #df para predicciones
-        df_aux = funciones_mod.hace_df_para_ys(ynew_proba, ynew_etiqueta, ynew_etiqueta)
-        x_test_sin_dummies = funciones_mod.dummies_a_var_categorica(X_test, ['delegacion_inicio', 'dia_semana', 'tipo_entrada', 'incidente_c4_rec'])
+        df_aux = funciones_mod.hace_df_para_ys(ynew_proba, ynew_etiqueta, pd.Series(ynew_etiqueta))
+        x_test_sin_dummies = funciones_mod.dummies_a_var_categorica(X_info_mensual, ['delegacion_inicio', 'dia_semana', 'tipo_entrada', 'incidente_c4_rec'])
         df_predicciones = pd.concat([x_test_sin_dummies.assign(ano=2020), df_aux], axis=1)
         df_predicciones.drop(['y_test'], axis=1, inplace=True)
 
 
         #guardamos las prediciones para X_test
-        with self.output()['outfile1'].open('w') as outfile1:
+        with self.output()['predict_info_mensual'].open('w') as outfile1:
             df_predicciones.to_csv(outfile1, sep='\t', encoding='utf-8', index=None, header=False)
 
         #guardamos el metadata del modelo
-        with self.output()['outfile2'].open('w') as outfile2:
+        with self.output()['meta_info_mensual'].open('w') as outfile2:
             metadata.to_csv(outfile2, sep='\t', encoding='utf-8', index=None, header=False)
 
 
@@ -973,58 +1025,10 @@ class PrediccionesInfoMensual(luigi.Task):
 
 # METADATOS DE PRUEBAS UNITARIAS DE PREDICCIONES*
 
-    
-
-class ImputacionesBaseInfoMensual(luigi.Task):
-    "Esta tarea hace la imputacion de la base"
-    
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-
-    # Parametros del RDS
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    # Parametros del Bucket
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-
-    #Para la tarea actual
-    folder_path = '3.imputaciones'
-
-    def requires(self):
-        return {'infiles1': SeparaBase(self.db_instance_id, self.db_name, self.db_user_name,
-                                     self.db_user_password, self.subnet_group, self.security_group,
-                                     self.bucket, self.root_path),
-                'infiles2': PreprocesoBaseInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group,self.db_name, self.db_user_name, self.db_user_password, self.bucket, self.root_path)}
 
 
-    def run(self):
-       #Se abren los archivos
-        with self.input()['infiles1']['X_train'].open('r') as infile1:
-            X_train = pd.read_csv(infile1, sep="\t")
-        with self.input()['infiles2'].open('r') as infile2:
-            base_procesada_info_mensual = pd.read_csv(infile2, sep="\t")
-        
-
-       #Se realizan las imputaciones
-       [X_train, base_imputada_info_mensual] = funciones_mod.imputacion_variable_delegacion(X_train, base_procesada_info_mensual)
-
-       #Se guardan los archivos
-        with self.output().open('w') as outfile2:
-            base_imputada_info_mensual.to_csv(outfile2, sep='\t', encoding='utf-8', index=None)
 
 
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                      format(self.bucket,
-                             self.root_path,
-                             self.folder_path,
-                            )
-        return luigi.contrib.s3.S3Target(path=output_path+'base_imputada_info_mensual.csv')
-               
+
 
 

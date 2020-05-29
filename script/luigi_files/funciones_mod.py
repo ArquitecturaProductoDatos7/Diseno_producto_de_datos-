@@ -300,11 +300,11 @@ def dummies_a_var_categorica(df, dummies_names):
 
 
 
-def metadata_predicciones(mes, ano):
+def metadata_predicciones(mes, ano, model_name):
        """ Esta funcion guarda los metadatos para las predicciones"""
 
-       meta = pd.DataFrame({'mes': mes,
-                            'ano': ano} ,index=[0])
+       meta = pd.DataFrame({'mes_de_prediccion': mes,
+                            'ano_de_prediccion': ano} ,index=[0])
 
        metadata = completa_metadatos_modelo(meta, model_name)
 
