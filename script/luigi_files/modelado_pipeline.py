@@ -1556,7 +1556,7 @@ class CalculaBiasFairness(luigi.Task):
        print('***** Comienza a calcular bias *****')
        #Se llama la función de bias
        df_aequitas,df= funciones_bias.MetricasBiasFairness(df_bias)
-        
+
        self.fname = "df_aequitas"
        df = funciones_bias.completa_metadatos_bias(df,self.fname)
 
@@ -1565,7 +1565,7 @@ class CalculaBiasFairness(luigi.Task):
            df_aequitas.to_csv(outfile1, sep='\t', encoding='utf-8', index=None)
        with self.output()['metadata_bias'].open('w') as outfile2:
             df.to_csv(outfile2, sep='\t', encoding='utf-8', index=None, header=False)
-        
+
     def output(self):
        output_path = "s3://{}/{}/{}/".\
                       format(self.bucket,

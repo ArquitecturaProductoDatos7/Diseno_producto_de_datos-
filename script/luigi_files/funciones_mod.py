@@ -293,3 +293,20 @@ def dummies_a_var_categorica(df, dummies_names):
         df_sin_dummies = pd.concat([df_sin_dummies, aux.rename(dummy)], axis=1)
 
     return df_sin_dummies
+
+
+
+
+
+
+
+def metadata_predicciones(mes, ano):
+       """ Esta funcion guarda los metadatos para las predicciones"""
+
+       meta = pd.DataFrame({'mes': mes,
+                            'ano': ano} ,index=[0])
+
+       metadata = completa_metadatos_modelo(meta, model_name)
+
+       return metadata
+
