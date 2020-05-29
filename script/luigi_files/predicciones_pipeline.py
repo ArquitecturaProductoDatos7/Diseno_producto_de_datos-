@@ -12,7 +12,7 @@ import funciones_req
 import funciones_mod
 import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
-from modelado_pipeline import SeparaBase, SeleccionaMejorModelo
+from modelado_pipeline import SeparaBase, SeleccionaMejorModelo, CreaEsquemaModelo
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
 
@@ -941,23 +941,23 @@ class InsertaColumnasInfoMensual(luigi.Task):
 
 
 class PrediccionesInfoMensual(luigi.Task):
-
+    """ Calcula las predicciones para la Info Mensual"""
     #Mes a extraer
-    month = "4" #luigi.IntParameter()
-    year = "2020" #luigi.IntParameter()
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
 
     # Parametros del RDS
-    db_instance_id = 'db-dpa20'  #luigi.Parameter()
-    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
-    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
     # Para condectarse a la Base
-    database =  'db_incidentes_cdmx' # luigi.Parameter()
-    user =  'postgres' #luigi.Parameter()
-    password = 'passwordDB' #luigi.Parameter()
-    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
     #Parametros del bucket
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
     #Folder para guardar la tarea actual en el s3
     folder_path = '9.predicciones'
@@ -1009,13 +1009,105 @@ class PrediccionesInfoMensual(luigi.Task):
 
 
     def output(self):
-        output_path = "s3://{}/{}/".\
+        output_path = "s3://{}/{}/{}/".\
                       format(self.bucket,
                              self.root_path,
                              self.folder_path
                             )
         return {'predict_info_mensual' : luigi.contrib.s3.S3Target(path=output_path+'predicciones_mes_'+self.month+'_ano_'+self.year+'.csv'),
                 'meta_info_mensual' : luigi.contrib.s3.S3Target(path=output_path+'metadata_predicciones_mes_'+self.month+'_ano_'+self.year+'.csv')}
+
+
+
+
+
+
+
+class CreaTablaMetadatosPrediccionesInfoMensual(PostgresQuery):
+    "Crea la tabla de metadatos para las predicciones de la Info Mensual"
+    #Para la creacion de la base
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    #Para conectarse a la base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE prediccion.Metadatos(fecha_de_ejecucion VARCHAR,
+                                              ip_address VARCHAR,
+                                              usuario VARCHAR,
+                                              archivo_modelo VARCHAR,
+                                              archivo_metadatos_modelo VARCHAR,
+                                              mes_de_prediccion VARCHAR,
+                                              ano_de_prediccion VARCHAR
+                                              ); 
+            """
+
+    def requires(self):
+         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
+
+
+
+
+class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
+    """
+    Esta funcion inserta los metadatos de Feature Engineering
+    """
+    #Mes a extraer
+    month = "4" #luigi.IntParameter()
+    year = "2020" #luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'  #luigi.Parameter()
+    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
+    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    # Para condectarse a la Base
+    database =  'db_incidentes_cdmx' # luigi.Parameter()
+    user =  'postgres' #luigi.Parameter()
+    password = 'passwordDB' #luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+
+    table = "prediccion.Metadatos"
+
+    columns=[("fecha_de_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("archivo_modelo", "VARCHAR"),
+             ("archivo_metadatos_modelo", "VARCHAR"),
+             ("mes_de_prediccion", "VARCHAR"),
+             ("ano_de_prediccion", "VARCHAR")]
+
+
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['meta_info_mensual'].open('r') as infile:
+             for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return {"infile1" : PrediccionesInfoMensual(self.month, self.year,
+                                                    self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.database, self.user, self.password, self.host,
+                                                    self.bucket, self.root_path), 
+                "infile2" : CreaTablaMetadatosPrediccionesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
+                                                                    self.database, self.user, self.password, self.host)}
+
+
+
+
+
+
+
 
 
 
