@@ -84,26 +84,39 @@ En segundo lugar, para la implementación del modelo consideramos que sí existe
 - Que para el modelo, no se tome en cuenta la información de ciertas variables que pudieran ser importantes.
 - Se haga una limpieza o reclasificación incorrecta de las variables para el desarrollo del modelo que afecte los resultados generados.
 
-### 4. Métrica del modelado
+### 4. Modelo
+
+Después de evaluar los 3 modelos (Random Forest, Regresión Logística y Xgboost), junto con el grid search de cada uno se obtuvo que las mejores predicciones eran con el modelo XGboost, por lo que fue el modelo con el cual se realizaron las probabilidades para definir la nueva etiqueta de la variable target. 
+
+### 5. Métrica del modelado
 
 Para medir el desempeño del modelo nos enfocaremos en la métrica **"Precision"** para monitorear cuantos incidentes de los que nos arrojo el modelo como *verdaderos* realmente fueron *verdaderos*, esto con la idea de que el producto de datos será proporcionado al C5 con el objetivo de poder asignar mejor sus recursos limitados, por lo que en esta métrica se pueden justamente controlar los *falsos positivos*. Cabe mencionar que la métrica de *Recall*, también puede ser utilizada si lo que se busca es tratar de controlar los *falsos negativos*, es decir más enfocado en atender a todos los incidentes *verdaderos*. Nuestra métrica tiene fuertes implicaciones éticas como la que se menciona en el punto anterior, pero justamente depende de cada perspectiva y nosotros nos enfocamos en optimizar los recursos limitados del C5.
 
 De igual manera, es importante mencionar que el producto de datos sólo es una herramienta adicional que será proporcionada al tomador de decisiones del C5 (por ejemplo un supervisor), el cual se apoyará del producto de datos con la lista de probabilidades priorizadas, pero éste último es el que tomará la decisión si mandar el recurso o no (o el tipo de recurso) al área solicitada.
 
-### 5. *Bias y Fairness*
+### 6. *Bias y Fairness*
 
-##### 5.1 Atributo Protegido
+##### 6.1 Atributo Protegido
 
 El producto de datos desarrollado para el C5, tiene como objetivo etiquetar las llamadas entrantes al centrol de control con una probabilidad asignada determinada con un modelo de predicción. De acuerdo a la base de datos se decidió tomar como atributo protegido la variable *delegación_inicio*, y se elige esta variable porque queremos evitar un sesgo socioeconómico, en el sentido de que las delegaciones de la Cuidad de México son heterogéneas ya que pueden ser distintas por su nivel de infraestructura, características de su población o su ubicación. Y justamente lo que se desea evitar es que existan delegaciones marginadas o no atendidas por el simple hecho de tener atributos que la beneficien en comparación con otras.
 
-##### 5.2 Métricas *Bias* y *Fairness*
+##### 6.2 Métricas *Bias* y *Fairness*
 
-Se determinó que el producto de datos es tipo **assitive** porque es una intervención cuyo objetivo es proporcionar una lista de probabilidades priorizada para determinar que llamadas entrantes al C5 son *verdaderas* y se eligieron 2 métricas para evaluar el modelo: 
+Se determinó que el producto de datos es tipo **assitive** porque es una intervención cuyo objetivo es proporcionar una lista de probabilidades priorizada para determinar que llamadas entrantes al C5 son *verdaderas*. Se eligieron 2 métricas para evaluar el sesgo en el modelo: 
 * **False Negative Rate** - Se busca que todas las delegaciones  (atributo protegido) tengan el mismo FNR, es decir no privilegar a ciertas delegaciones sobre otras en cuanto a atención.
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/FNR.png)
+
+Se acuerdo con esta primer métrica se observa que por ejemplo en las delegaciones de Tlalpan y Álvaro Obregón son en las que el modelo predice incorrectamente en mayor número de veces. En el caso de Tlalpan el 92% de la veces las llamadas que eran *verdaderas* la etiqueta con baja probabilidad o no *verdaderas*, justo por el hecho de priorizar las que tengan mayor probabilidad.
+
 * **False Omission Rate** - Para medir la proporción de falsos negativos que se rechazan incorrectamente y en este caso interesa conocer su hay un sesgo hacia alguna delegación en este sentido, debido a que se busca tener unna paridad de FNR (primera mètrica) en todas las delegaciones.
 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/FOR.png)
+
+De igual manera en la gráfica del FOR se tienen 2 delegaciones con esa métrica alta, estas son Milpa y Cuahutemoc en las cuales hay mayor numero de casos en los que se los falsos negativos son etiquetados incorrectamente como falsos.
+
+De igual manera, se obutuvo el **FOR disparity** y el **FNR disparity** para completar el análsis y poder realizar una comparación entre una delegación como punto de referencia para determinar la disparidad entre todas las delegaciones respecto al *benchmark* elegido. En este caso la delegación de referencia fue Iztapalapa que es la delegación que tiene mayor número de ocurrencias y justamente puede reflejar un mayor acercamiento del comportamiento de los datos para el análisis. 
 
 ## Referencias
 
-[C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4)
+[C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4) <br>
 [Aequitas](https://dssg.github.io/aequitas/examples/compas_demo.html)
