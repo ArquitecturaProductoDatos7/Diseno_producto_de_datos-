@@ -1,12 +1,13 @@
 import unittest
 import pandas as pd
+import numpy as np
 import psycopg2
 import datetime
 import marbles.core
-import numpy as np
+import pandas.io.sql as psql
+from marbles.mixins import mixins
 import funciones_s3
 import funciones_rds
-import pandas.io.sql as psql
 
 class TestsForExtract(marbles.core.TestCase):
     """ 
@@ -197,3 +198,31 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
 
     def test_numerical_columns_x_train(self):
         pd.api.types.is_numeric_dtype(self.data_entrenamiento_despues_OneHoteEncoder.values)
+
+
+
+
+class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
+    """ 
+    Clase con pruebas para Predicciones usando marbles:
+    1.- Probar que la proporcion de etiquetas verdaderas sea "parecida" a las de los datos de entrenamiento
+    2.- Probar que el numero de columnas del df final es igual al numero de cols del df inicial +3
+    """
+    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
+
+    host = funciones_rds.db_endpoint('db-dpa20')
+    connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
+
+    def test_check_porcentaje_1s(self):
+        #Porcentaje de etiquetas verdaderas en las predicciones
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT avg(y_etiqueta)*100 from prediccion.predicciones ; ")
+        porcentaje_1_predicciones = cursor.fetchone()
+        self.connection.commit()
+
+        #Porcentaje de verdaderas en los datos
+        porcentaje_1_historicos = self.data['target'].mean()*100
+
+
+        self.assertBetween(porcentaje_1_predicciones, lower=porcentaje_1_historicos*(0.8), upper=porcentaje_1_historicos*(1.2),
+                           msg='El porcentaje de etiquetas verdaderas en las predicciones es muy diferente a la data historica')

@@ -14,7 +14,7 @@ import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
 from modelado_pipeline import SeparaBase, SeleccionaMejorModelo, CreaEsquemaModelo
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
-from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas
+from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas, TestsForPredicciones
 
 
 
@@ -54,16 +54,17 @@ class ExtraeInfoMensual(luigi.Task):
 
     #Para la base
     db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group =  luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
     host =  luigi.Parameter()
 
     #Para el bucket
     bucket = luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
+    root_path = luigi.Parameter()
+
     folder_path = '9.predicciones'
 
 
@@ -74,7 +75,7 @@ class ExtraeInfoMensual(luigi.Task):
 
     def requires(self):
         return CreaTablaRawInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
-                                       self.host, self.db_name, self.db_user_name, self.db_user_password)
+                                       self.host, self.database, self.user, self.password)
 
 
     def run(self):
@@ -117,7 +118,8 @@ class InsertaInfoMensualRaw(CopyToTable):
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
+    root_path = luigi.Parameter()
+
     folder_path = '9.predicciones'
 
 
@@ -135,9 +137,10 @@ class InsertaInfoMensualRaw(CopyToTable):
                    yield [json.dumps(records[i]['fields'])]
 
     def requires(self):
-        return {"infile1" : ExtraeInfoMensual(self.month, self.year, self.db_instance_id,
-                                              self.database, self.user, self.password,
-                                              self.subnet_group, self.security_group, self.host, self.bucket),
+        return {"infile1" : ExtraeInfoMensual(self.month, self.year, 
+                                              self.db_instance_id, self.subnet_group, self.security_group,
+                                              self.database, self.user, self.password, self.host, 
+                                              self.bucket, self.root_path),
                 "infile2" : CreaTablaRawInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
                                                     self.host, self.database, self.user, self.password)}
 
@@ -163,7 +166,8 @@ class InsertaMetadataInfoMensualRaw(CopyToTable):
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'
+    root_path = luigi.Parameter()
+
     folder_path = '9.predicciones'
 
 
@@ -191,14 +195,14 @@ class InsertaMetadataInfoMensualRaw(CopyToTable):
 
 
     def requires(self):
-        return {"infile1" : ExtraeInfoMensual(self.month, self.year, 
+        return {"infile1" : ExtraeInfoMensual(self.month, self.year,
                                               self.db_instance_id, self.subnet_group, self.security_group,
                                               self.database, self.user, self.password, self.host,
-                                              self.bucket), 
+                                              self.bucket, self.root_path),
                 "infile2" : InsertaInfoMensualRaw(self.month, self.year,
                                                   self.db_instance_id, self.subnet_group, self.security_group,
                                                   self.database, self.user, self.password, self.host,
-                                                  self.bucket)}
+                                                  self.bucket, self.root_path)}
 
 
 
@@ -223,14 +227,15 @@ class Test1ForExtractInfoMensual(luigi.Task):
      host = luigi.Parameter()
 
      bucket = luigi.Parameter()
-     root_path = 'bucket_incidentes_cdmx'
+     root_path = luigi.Parameter()
+
      folder_path = '0.pruebas_unitarias'
 
      def requires(self):
         return InsertaMetadataInfoMensualRaw(self.month, self.year,
                                              self.db_instance_id, self.subnet_group, self.security_group,
                                              self.db_name, self.db_user_name, self.db_user_password, self.host,
-                                             self.bucket)
+                                             self.bucket, self.root_path)
 
      def run(self):
         prueba_extract = TestsForExtract()
@@ -271,7 +276,8 @@ class Test2ForExtractInfoMensual(luigi.Task):
      host = luigi.Parameter()
 
      bucket = luigi.Parameter()
-     root_path = 'bucket_incidentes_cdmx'
+     root_path = luigi.Parameter()
+
      folder_path = '9.predicciones'
 
 
@@ -279,7 +285,7 @@ class Test2ForExtractInfoMensual(luigi.Task):
         return InsertaMetadataInfoMensualRaw(self.month, self.year,
                                              self.db_instance_id, self.subnet_group, self.security_group,
                                              self.db_name, self.db_user_name, self.db_user_password, self.host,
-                                             self.bucket)
+                                             self.bucket, self.root_path)
 
      def run(self):
         prueba_extract = TestsForExtract()
@@ -320,6 +326,7 @@ class InsertaMetadatosPruebasUnitariasExtractInfoMensual(CopyToTable):
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
     # Nombre de la tabla a insertar
     table = 'tests.pruebas_unitarias'
@@ -345,11 +352,11 @@ class InsertaMetadatosPruebasUnitariasExtractInfoMensual(CopyToTable):
         return  { "infile1": Test1ForExtractInfoMensual(self.month, self.year,
                                              self.db_instance_id, self.subnet_group, self.security_group,
                                              self.database, self.user, self.password,  self.host,
-                                             self.bucket),
+                                             self.bucket, self.root_path),
                   "infile2": Test2ForExtractInfoMensual(self.month, self.year,
                                              self.db_instance_id, self.subnet_group, self.security_group,
                                              self.database, self.user, self.password,  self.host,
-                                             self.bucket)}
+                                             self.bucket, self.root_path)}
 
 
 
@@ -386,7 +393,7 @@ class CreaTablaCleanedIncidentesInfoMensual(PostgresQuery):
 
     def requires(self):
          return etl_pipeline_ver6.CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
+                                                     self.host, self.database, self.user, self.password)
 
 
 
@@ -410,13 +417,10 @@ class LimpiaInfoMensual(PostgresQuery):
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
-    #clase = InsertaMetadataInfoMensualRaw()
-    #mes = getattr(clase,'month')
-    #ano = getattr(clase,'year')
-
-    table=''
-    query =""
+    table = ""
+    query = ""
 
     def run(self):
         connection = self.output().connect()
@@ -452,8 +456,9 @@ class LimpiaInfoMensual(PostgresQuery):
         return  [CreaTablaCleanedIncidentesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
                                                        self.host, self.database, self.user, self.password),
                  InsertaMetadatosPruebasUnitariasExtractInfoMensual(self.month, self.year,
-                                                            self.db_instance_id, self.subnet_group, self.security_group,
-                                                            self.database, self.user, self.password, self.host, self.bucket)]
+                                                                    self.db_instance_id, self.subnet_group, self.security_group,
+                                                                    self.database, self.user, self.password, self.host,
+                                                                    self.bucket, self.root_path)]
 
 
 
@@ -467,19 +472,22 @@ class InsertaMetadatosCLEANEDInfoMensual(CopyToTable):
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
     # Para condectarse a la Base
     database = luigi.Parameter()
     user = luigi.Parameter()
     password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
     host = luigi.Parameter()
 
     bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
     def requires(self):
-        return LimpiaInfoMensual(self.month, self.year, self.db_instance_id, self.database, self.user,
-                                    self.password, self.subnet_group, self.security_group, self.host, self.bucket)
+        return LimpiaInfoMensual(self.month, self.year,
+                                 self.db_instance_id, self.database, self.user,
+                                 self.password, self.subnet_group, self.security_group, self.host,
+                                 self.bucket, self.root_path)
 
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
@@ -519,18 +527,20 @@ class Test1ForCleanInfoMensual(luigi.Task):
     db_instance_id = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
     host = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
 
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
     folder_path = '0.pruebas_unitarias'
 
     def requires(self):
-        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name, self.db_user_name,
-                                                  self.db_user_password, self.subnet_group, self.security_group, self.host, self.bucket)
+        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year,
+                                                  self.db_instance_id, self.subnet_group, self.security_group,
+                                                  self.database, self.user, self.password, self.host,
+                                                  self.bucket, self.root_path)
 
     def run(self):
         prueba_clean_marbles = TestClean()
@@ -565,19 +575,21 @@ class Test2ForCleanInfoMensual(luigi.Task):
     db_instance_id = luigi.Parameter()
     subnet_group = luigi.Parameter()
     security_group = luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
     host = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
 
     bucket = luigi.Parameter()
     root_path = luigi.Parameter()
     folder_path = '0.pruebas_unitarias'
 
     def requires(self):
-        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year, self.db_instance_id, self.db_name,
-                                                  self.db_user_name, self.db_user_password, self.subnet_group, self.security_group, self.host,
-                                                  self.bucket)
+        return InsertaMetadatosCLEANEDInfoMensual(self.month, self.year,
+                                                  self.db_instance_id, self.subnet_group, self.security_group,
+                                                  self.database, self.user, self.password, self.host,
+                                                  self.bucket, self.root_path)
+
 
     def run(self):
         prueba_clean_marbles = TestClean()
@@ -640,9 +652,14 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
 
 
     def requires(self):
-        return  { "infile1": Test1ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group,
-                                                      self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path),
-                  "infile2": Test2ForCleanInfoMensual(self.month, self.year, self.db_instance_id, self.subnet_group, self.security_group, self.host, self.database, self.user, self.password, self.bucket, self.root_path)}
+        return  { "infile1": Test1ForCleanInfoMensual(self.month, self.year,
+                                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                                      self.database, self.user, self.password, self.host,
+                                                      self.bucket, self.root_path),
+                  "infile2": Test2ForCleanInfoMensual(self.month, self.year,
+                                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                                      self.database, self.user, self.password, self.host,
+                                                      self.bucket, self.root_path)}
 
 
 
@@ -725,9 +742,9 @@ class ImputacionesBaseInfoMensual(luigi.Task):
 
     def requires(self):
        return {'infiles1' : PreprocesoBaseInfoMensual(self.month, self.year,
-                                                     self.db_instance_id, self.subnet_group, self.security_group,
-                                                     self.database, self.user, self.password, self.host,
-                                                     self.bucket, self.root_path),
+                                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                                      self.database, self.user, self.password, self.host,
+                                                      self.bucket, self.root_path),
                'infiles2' : SeparaBase(self.db_instance_id, self.database, self.user,
                                        self.password, self.subnet_group, self.security_group,
                                        self.bucket, self.root_path)}
@@ -907,13 +924,13 @@ class InsertaColumnasInfoMensual(luigi.Task):
 
     def requires(self):
         return {"infiles1" : DummiesBaseInfoMensual(self.month, self.year,
-                                      self.db_instance_id, self.subnet_group, self.security_group,
-                                      self.database, self.user, self.password, self.host,
-                                      self.bucket, self.root_path),
+                                                    self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.database, self.user, self.password, self.host,
+                                                    self.bucket, self.root_path),
                 "infiles2" : InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,
-                                                     self.db_instance_id, self.subnet_group, self.security_group,
-                                                     self.database, self.user, self.password, self.host,
-                                                     self.bucket, self.root_path)}
+                                                                   self.db_instance_id, self.subnet_group, self.security_group,
+                                                                   self.database, self.user, self.password, self.host,
+                                                                   self.bucket, self.root_path)}
 
 
 
@@ -1049,8 +1066,8 @@ class CreaTablaMetadatosPrediccionesInfoMensual(PostgresQuery):
             """
 
     def requires(self):
-         return CreaEsquemaModelo(self.db_instance_id, self.subnet_group, self.security_group,
-                                   self.host, self.database, self.user, self.password)
+         return CreaEsquemaPrediccion(self.db_instance_id, self.subnet_group, self.security_group,
+                                      self.database, self.user, self.password, self.host)
 
 
 
@@ -1060,21 +1077,21 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
     Esta funcion inserta los metadatos de Feature Engineering
     """
     #Mes a extraer
-    month = "4" #luigi.IntParameter()
-    year = "2020" #luigi.IntParameter()
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
 
     # Parametros del RDS
-    db_instance_id = 'db-dpa20'  #luigi.Parameter()
-    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
-    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
     # Para condectarse a la Base
-    database =  'db_incidentes_cdmx' # luigi.Parameter()
-    user =  'postgres' #luigi.Parameter()
-    password = 'passwordDB' #luigi.Parameter()
-    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
     #Parametros del bucket
-    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
-    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
 
     table = "prediccion.Metadatos"
 
@@ -1098,24 +1115,61 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
         return {"infile1" : PrediccionesInfoMensual(self.month, self.year,
                                                     self.db_instance_id, self.subnet_group, self.security_group,
                                                     self.database, self.user, self.password, self.host,
-                                                    self.bucket, self.root_path), 
+                                                    self.bucket, self.root_path),
                 "infile2" : CreaTablaMetadatosPrediccionesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
                                                                     self.database, self.user, self.password, self.host)}
 
 
 
 
-
-
-
-
-
-
-# METADATOS DE LAS PREDICCIONES (BREN)
-
 # PRUEBAS UNITARIAS DE PREDICCIONES*
 
 # METADATOS DE PRUEBAS UNITARIAS DE PREDICCIONES*
+
+
+class Test1ForPrediccionesInfoMensual(luigi.Task): 
+    "Corre las pruebas unitarias para la parte de Predicciones"
+
+    #Mes a extraer
+    month = "4" #luigi.IntParameter()
+    year = "2020" #luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'  #luigi.Parameter()
+    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
+    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    # Para condectarse a la Base
+    database =  'db_incidentes_cdmx' # luigi.Parameter()
+    user =  'postgres' #luigi.Parameter()
+    password = 'passwordDB' #luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+
+    folder_path = '0.pruebas_unitarias'
+
+    def requires(self):
+        return InsertaMetadatosPrediccionesInfoMensual(self.month, self.year,
+                                                       self.db_instance_id, self.security_group, self.subnet_group,
+                                                       self.database, self.user, self.password, self.host,
+                                                       self.bucket, self.root_path)
+
+    def run(self):
+        prueba_predicciones_marbles = TestsForPredicciones()
+        prueba_predicciones_marbles.test_check_porcentaje_1s()
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_porcentaje_1s','success','predicciones')
+
+        with self.output().open('w') as out_file:
+            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+
+    def output(self):
+        output_path = "s3://{}/{}/{}/".\
+                    format(self.bucket,
+                           self.root_path,
+                           self.folder_path
+                           )
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_PREDICT_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
 
 
 
