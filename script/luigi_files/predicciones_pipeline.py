@@ -912,8 +912,7 @@ class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
 
     def requires(self):
         return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                          self.db_user_password, 
-                                          self.host, self.bucket, self.root_path)
+                                                     self.db_user_password, self.host, self.bucket, self.root_path)
 
     def run(self):
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
@@ -953,8 +952,7 @@ class Test2ForFeatureEngineeringInfoMensual(luigi.Task):
 
     def requires(self):
         return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                          self.db_user_password, 
-                                          self.host, self.bucket, self.root_path)
+                                                     self.db_user_password, self.host, self.bucket, self.root_path)
     
     def run(self):
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
@@ -994,8 +992,7 @@ class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
 
     def requires(self):
         return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                          self.db_user_password, 
-                                          self.host, self.bucket, self.root_path)
+                                                     self.db_user_password, self.host, self.bucket, self.root_path)
 
     def run(self):
         prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
@@ -1034,8 +1031,7 @@ class Test4ForFeatureEngineeringInfoMensual(luigi.Task):
 
     def requires(self):
         return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                          self.db_user_password, 
-                                          self.host, self.bucket, self.root_path)
+                                                     self.db_user_password, self.host, self.bucket, self.root_path)
 
     def run(self):
         prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
@@ -1097,17 +1093,13 @@ class InsertaMetadatosPruebasUnitariasFeatureEnginInfoMensual(CopyToTable):
 
     def requires(self):
         return  { "infile1": Test1ForFeatureEngineeringInfoMensual(self.month,self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                       self.subnet_group, self.security_group,self.host,
-                                                       self.bucket, self.root_path),
+                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path),
                   "infile2": Test2ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                       self.subnet_group, self.security_group,self.host, 
-                                                       self.bucket, self.root_path),
+                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path),
                   "infile3": Test3ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                       self.subnet_group, self.security_group,self.host, 
-                                                       self.bucket, self.root_path),
+                                                                   self.subnet_group, self.security_group,self.host,self.bucket, self.root_path),
                   "infile4": Test4ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                       self.subnet_group, self.security_group,self.host, 
-                                                       self.bucket, self.root_path)}
+                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path)}
 
 
 # LUIGI TASK PARA ANADIR LAS COLUMNAS QUE FALTAN (Bren)
