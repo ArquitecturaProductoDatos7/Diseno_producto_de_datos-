@@ -296,3 +296,37 @@ def obtiene_df(db_name, db_user, db_pass, db_endpoint, db_table, db_schema):
         print("***** Failed getting df: {} *****".format(error))
 
     return dataframe
+
+
+
+
+
+def insert_metadatos_unit_test(meta, db_name, db_user, db_pass, db_endpoint):
+    "Inserta el metadata del esquema CLEANED"
+    try:
+        connection = connect(db_name, db_user, db_pass, db_endpoint)
+        cursor = connection.cursor()
+
+        sql_insert_metadata = """ INSERT INTO tests.pruebas_unitarias (fecha_ejecucion,
+                                                                       ip_address,
+                                                                       usuario,
+                                                                       test,
+                                                                       test_status,
+                                                                       level,
+                                                                       error)
+                                  VALUES (%s, %s, %s, %s, %s, %s, %s); """
+
+        # executemany() to insert multiple rows rows
+        cursor.executemany(sql_insert_metadata, meta)
+        connection.commit()
+       # print("***** {} Metadata record for PRUEBAS UNITARIAS inserted successfully *****".format(cursor.rowcount))
+
+    except (Exception, psycopg2.Error) as error:
+        print("***** Failed inserting record into table: {} *****".format(error))
+
+    finally:
+        # closing database connection.
+        if (connection):
+           cursor.close()
+           connection.close()
+           #print("***** PostgreSQL connection is closed *****")

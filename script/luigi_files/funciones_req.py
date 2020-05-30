@@ -108,7 +108,10 @@ def metadata_para_cleaned(task, status, elim):
     return l
 
 
-def metadata_para_pruebas_unitarias(test, status_test, level):
+
+
+
+def metadata_para_pruebas_unitarias(test, status_test, level, error):
     """
     Genera metadata para las pruebas unitarias
     """
@@ -121,7 +124,8 @@ def metadata_para_pruebas_unitarias(test, status_test, level):
                 'usuario':  getpass.getuser(),
                 'prueba': test,
                 'prueba_status': status_test,
-                'nivel': level}
+                'nivel': level,
+                'error': error}
     
     metadata=pd.DataFrame(metadata,index=[0])
 

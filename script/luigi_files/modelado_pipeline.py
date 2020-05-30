@@ -542,7 +542,7 @@ class Test1ForFeatureEngineering(luigi.Task):
     def run(self):
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec','success','feature_engineering', 'none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -578,7 +578,7 @@ class Test2ForFeatureEngineering(luigi.Task):
     def run(self):
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_nulls_x_train()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train','success','feature_engineering', 'none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -616,7 +616,7 @@ class Test3ForFeatureEngineering(luigi.Task):
     def run(self):
         prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
         prueba_feature_engineering_pandas.test_num_columns_x_train()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train','success','feature_engineering', 'none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -656,7 +656,7 @@ class Test4ForFeatureEngineering(luigi.Task):
     def run(self):
         prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
         prueba_feature_engineering_pandas.test_numerical_columns_x_train()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train','success','feature_engineering','none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -701,7 +701,8 @@ class InsertaMetadatosPruebasUnitariasFeatureEngin(CopyToTable):
              ("usuario", "VARCHAR"),
              ("test", "VARCHAR"),
              ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
 
     def rows(self):
          for file in ["infile1", "infile2", "infile3", "infile4"]:

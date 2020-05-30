@@ -2,8 +2,7 @@
 import json, os, datetime, boto3, luigi, time, pickle, socket, getpass
 import luigi.contrib.s3
 from luigi.contrib.postgres import CopyToTable, PostgresQuery
-#from luigi.contrib import rdbms
-#from luigi import task
+from luigi import Event
 import pandas as pd
 import pandas.io.sql as psql
 import funciones_rds
@@ -12,7 +11,7 @@ import funciones_req
 import funciones_mod
 import etl_pipeline_ver6
 from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
-from modelado_pipeline import SeparaBase, SeleccionaMejorModelo, CreaEsquemaModelo
+from modelado_pipeline import SeparaBase, SeleccionaMejorModelo, CreaEsquemaPrediccion
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas, TestsForPredicciones
 
@@ -240,7 +239,7 @@ class Test1ForExtractInfoMensual(luigi.Task):
      def run(self):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_archivos_info_mensual()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos_info_mensual', 'SUCCESS', 'extract')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos_info_mensual', 'SUCCESS', 'extract','none')
 
         with self.output().open('w') as out_file:
              metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -290,7 +289,7 @@ class Test2ForExtractInfoMensual(luigi.Task):
      def run(self):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_registros_info_mensual()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros_info_mensual', 'SUCCESS', 'extract')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros_info_mensual', 'SUCCESS', 'extract','none')
 
         with self.output().open('w') as out_file:
              metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -337,7 +336,8 @@ class InsertaMetadatosPruebasUnitariasExtractInfoMensual(CopyToTable):
              ("usuario", "VARCHAR"),
              ("test", "VARCHAR"),
              ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -545,8 +545,7 @@ class Test1ForCleanInfoMensual(luigi.Task):
     def run(self):
         prueba_clean_marbles = TestClean()
         prueba_clean_marbles.test_islower_w_marbles_info_mensual()
-        #metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles_info_mensual','success','clean')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles_info_mensual','success','clean','none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -595,7 +594,7 @@ class Test2ForCleanInfoMensual(luigi.Task):
         prueba_clean_marbles = TestClean()
         prueba_clean_marbles.test_correct_type_info_mensual()
         #metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type_info_mensual','success','clean')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type_info_mensual','success','clean','none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -890,216 +889,12 @@ class InsertaMetadatosFeatuEnginInfoMensual(CopyToTable):
                                       self.db_instance_id, self.subnet_group, self.security_group,
                                       self.database, self.user, self.password, self.host,
                                       self.bucket, self.root_path)
-    
-    
-class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
-    "Corre las pruebas unitarias para la parte de Feature Engineering"
-    
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    host = luigi.Parameter()
-
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-    folder_path = '0.pruebas_unitarias'
-
-    def requires(self):
-        return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                                     self.db_user_password, self.host, self.bucket, self.root_path)
-
-    def run(self):
-        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
-        prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec_info_mensual()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec_info_mensual','success','feature_engineering')
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                    format(self.bucket,
-                           self.root_path,
-                           self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_FE_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
-
-                           
-
-class Test2ForFeatureEngineeringInfoMensual(luigi.Task):
-    "Corre las pruebas unitarias para la parte de Feature Engineering"
-    
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    host = luigi.Parameter()
-
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-    folder_path = '0.pruebas_unitarias'
-
-    def requires(self):
-        return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                                     self.db_user_password, self.host, self.bucket, self.root_path)
-    
-    def run(self):
-        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
-        prueba_feature_engineering_marbles.test_nulls_x_train_info_mensual()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train_info_mensual','success','feature_engineering')
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                    format(self.bucket,
-                           self.root_path,
-                           self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_FE_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
-
-    
-
-class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
-    "Corre las pruebas unitarias para la parte de Feature Engineering"
-    
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    host = luigi.Parameter()
-
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-    folder_path = '0.pruebas_unitarias'
-
-    def requires(self):
-        return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                                     self.db_user_password, self.host, self.bucket, self.root_path)
-
-    def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
-        prueba_feature_engineering_pandas.test_num_columns_x_train_info_mensual()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train_info_mensual','success','feature_engineering')
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                    format(self.bucket,
-                           self.root_path,
-                           self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba3_FE_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
-
-    
-class Test4ForFeatureEngineeringInfoMensual(luigi.Task):
-    "Corre las pruebas unitarias para la parte de Feature Engineering"
-    
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
-
-    db_instance_id = luigi.Parameter()
-    db_name = luigi.Parameter()
-    db_user_name = luigi.Parameter()
-    db_user_password = luigi.Parameter()
-    subnet_group = luigi.Parameter()
-    security_group = luigi.Parameter()
-    host = luigi.Parameter()
-
-    bucket = luigi.Parameter()
-    root_path = luigi.Parameter()
-    folder_path = '0.pruebas_unitarias'
-
-    def requires(self):
-        return InsertaMetadatosFeatuEnginInfoMensual(self.month, self.year,self.db_instance_id, self.subnet_group, self.security_group, self.db_name, self.db_user_name,
-                                                     self.db_user_password, self.host, self.bucket, self.root_path)
-
-    def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
-        prueba_feature_engineering_pandas.test_numerical_columns_x_train_info_mensual()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train_info_mensual','success','feature_engineering')
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
-
-    def output(self):
-        output_path = "s3://{}/{}/{}/".\
-                    format(self.bucket,
-                           self.root_path,
-                           self.folder_path
-                           )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba4_FE_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
-
-    
-    
-class InsertaMetadatosPruebasUnitariasFeatureEnginInfoMensual(CopyToTable):
-    "Inserta los metadatos para las pruebas unitarias en Feature Engineering" 
-    
-    month = "4" #luigi.IntParameter()
-    year =  "2020" #luigi.IntParameter()
-    
-    # Parametros del RDS
-    db_instance_id = 'db-dpa20'
-    subnet_group = 'subnet_gp_dpa20'
-    security_group = 'sg-09b7d6fd6a0daf19a'
-    # Para condectarse a la Base
-    database = 'db_incidentes_cdmx'
-    user = 'postgres'
-    password = 'passwordDB'
-    host = funciones_rds.db_endpoint(db_instance_id)
-
-    bucket = 'dpa20-incidentes-cdmx'
-    root_path = 'bucket_incidentes_cdmx'
-    folder_path = '0.pruebas_unitarias'
 
 
-    # Nombre de la tabla a insertar
-    table = 'tests.pruebas_unitarias'
 
-    # Estructura de las columnas que integran la tabla (ver esquema)
-    columns=[("fecha_ejecucion", "VARCHAR"),
-             ("ip_address", "VARCHAR"),
-             ("usuario", "VARCHAR"),
-             ("test", "VARCHAR"),
-             ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+# PRUEBAS UNITARAS DE FE (maggie)
 
-    def rows(self):
-         for file in ["infile1", "infile2", "infile3", "infile4"]:
-             #Leemos el df de metadatos
-             with self.input()[file].open('r') as infile:
-                    for line in infile:
-                        yield line.strip("\n").split("\t")
-
-
-    def requires(self):
-        return  { "infile1": Test1ForFeatureEngineeringInfoMensual(self.month,self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path),
-                  "infile2": Test2ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path),
-                  "infile3": Test3ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                                   self.subnet_group, self.security_group,self.host,self.bucket, self.root_path),
-                  "infile4": Test4ForFeatureEngineeringInfoMensual(self.month, self.year,self.db_instance_id, self.database, self.user, self.password,
-                                                                   self.subnet_group, self.security_group,self.host, self.bucket, self.root_path)}
+# METADATSO DE PRUEBAS UNITARIAS (maggie)
 
 
 # LUIGI TASK PARA ANADIR LAS COLUMNAS QUE FALTAN (Bren)
@@ -1271,7 +1066,7 @@ class CreaTablaMetadatosPrediccionesInfoMensual(PostgresQuery):
 
     def requires(self):
          return CreaEsquemaPrediccion(self.db_instance_id, self.subnet_group, self.security_group,
-                                      self.database, self.user, self.password, self.host)
+                                      self.host, self.database, self.user, self.password)
 
 
 
@@ -1321,17 +1116,13 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
                                                     self.database, self.user, self.password, self.host,
                                                     self.bucket, self.root_path),
                 "infile2" : CreaTablaMetadatosPrediccionesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
-                                                                    self.database, self.user, self.password, self.host)}
+                                                                      self.database, self.user, self.password, self.host)}
 
 
 
 
-# PRUEBAS UNITARIAS DE PREDICCIONES*
 
-# METADATOS DE PRUEBAS UNITARIAS DE PREDICCIONES*
-
-
-class Test1ForPrediccionesInfoMensual(luigi.Task): 
+class Test1ForPrediccionesInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Predicciones"
 
     #Mes a extraer
@@ -1352,20 +1143,23 @@ class Test1ForPrediccionesInfoMensual(luigi.Task):
     root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
 
     folder_path = '0.pruebas_unitarias'
-
+    test_error = 'none'
     def requires(self):
         return InsertaMetadatosPrediccionesInfoMensual(self.month, self.year,
-                                                       self.db_instance_id, self.security_group, self.subnet_group,
+                                                       self.db_instance_id, self.subnet_group, self.security_group,
                                                        self.database, self.user, self.password, self.host,
                                                        self.bucket, self.root_path)
 
     def run(self):
         prueba_predicciones_marbles = TestsForPredicciones()
-        prueba_predicciones_marbles.test_check_porcentaje_1s()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_porcentaje_1s','success','predicciones')
-
-        with self.output().open('w') as out_file:
-            metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
+        try:
+            prueba_predicciones_marbles.test_check_porcentaje_1s()
+            metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_porcentaje_1s','success','predicciones', self.test_error)
+            with self.output().open('w') as outfile:
+                metadatos.to_csv(outfile, sep='\t', encoding='utf-8', index=None, header=False)
+        except ValueError as error:
+            self.test_error = error
+            raise ValueError("*****  ( ╯°□°)╯ ┻━━┻ ***** \n")
 
     def output(self):
         output_path = "s3://{}/{}/{}/".\
@@ -1379,6 +1173,83 @@ class Test1ForPrediccionesInfoMensual(luigi.Task):
 
 
 
+@Test1ForPrediccionesInfoMensual.event_handler(luigi.Event.FAILURE)
+def FailureTest1Predicciones(self, exception):
+    """Will be called directly after a failed execution
+       of `run` on any JobTask subclass
+    """
+    metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_porcentaje_1s','failed','predicciones', str(self.test_error))
+    funciones_rds.insert_metadatos_unit_test(metadatos.to_records(index=False), self.database, self.user, self.password, self.host)
 
 
 
+
+class InsertaMetadatosPruebasUnitariasPrediccionesInfoMensual(CopyToTable):
+    "Inserta los metadatos para las pruebas unitarias en Clean"
+
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+
+    # Para condectarse a la Base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+
+
+    #Mes a extraer
+    month = "4" #luigi.IntParameter()
+    year = "2020" #luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = 'db-dpa20'  #luigi.Parameter()
+    subnet_group = 'subnet_gp_dpa20' # luigi.Parameter()
+    security_group = 'sg-09b7d6fd6a0daf19a' # luigi.Parameter()
+    # Para condectarse a la Base
+    database =  'db_incidentes_cdmx' # luigi.Parameter()
+    user =  'postgres' #luigi.Parameter()
+    password = 'passwordDB' #luigi.Parameter()
+    host = funciones_rds.db_endpoint(db_instance_id)  #luigi.Parameter()
+    #Parametros del bucket
+    bucket = 'dpa20-incidentes-cdmx'  #luigi.Parameter()
+    root_path = 'bucket_incidentes_cdmx'  #luigi.Parameter()
+
+    # Nombre de la tabla a insertar
+    table = 'tests.pruebas_unitarias'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("fecha_ejecucion", "VARCHAR"),
+             ("ip_address", "VARCHAR"),
+             ("usuario", "VARCHAR"),
+             ("test", "VARCHAR"),
+             ("test_status", "VARCHAR"),
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        for file in ["infile1", "infile2"]:
+            with self.input()[file].open('r') as infile:
+                for line in infile:
+                    yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return  { "infile1": Test1ForPrediccionesInfoMensual(self.month, self.year,
+                                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                                      self.database, self.user, self.password, self.host,
+                                                      self.bucket, self.root_path),
+                  "infile2": Test2ForPrediccionesInfoMensual(self.month, self.year,
+                                                      self.db_instance_id, self.subnet_group, self.security_group,
+                                                      self.database, self.user, self.password, self.host,
+                                                      self.bucket, self.root_path)}

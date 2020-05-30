@@ -274,6 +274,7 @@ def hace_df_para_ys(y_proba, y_tag, y_test):
 
 
 
+
 def dummies_a_var_categorica(df, dummies_names):
     """Esta funcion reconstruye la variable categorica de sus variables dummies
         param: df el dataframe que contiene las variables dummies

@@ -186,7 +186,7 @@ class CreaTablaPruebasUnitariasMetadatos(PostgresQuery):
 
     table = ""
     query = """
-            CREATE TABLE tests.pruebas_unitarias(fecha_ejecucion VARCHAR, ip_address VARCHAR, 
+            CREATE TABLE tests.pruebas_unitarias(fecha_ejecucion VARCHAR, ip_address VARCHAR,
                                                  usuario VARCHAR, test VARCHAR,
                                                  test_status VARCHAR, level VARCHAR, error VARCHAR);
             """
@@ -288,7 +288,7 @@ class Test1ForExtract(luigi.Task):
      def run(self):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_archivos()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_archivos', 'SUCCESS', 'extract', 'none')
 
         with self.output().open('w') as out_file:
              metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -327,7 +327,7 @@ class Test2ForExtract(luigi.Task):
      def run(self):
         prueba_extract = TestsForExtract()
         prueba_extract.test_check_num_registros()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_registros', 'SUCCESS', 'extract', 'none')
 
         with self.output().open('w') as out_file:
              metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -370,7 +370,8 @@ class InsertaMetadatosPruebasUnitariasExtract(CopyToTable):
              ("usuario", "VARCHAR"),
              ("test", "VARCHAR"),
              ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
@@ -639,7 +640,7 @@ class Test1ForClean(luigi.Task):
     def run(self):
         prueba_clean_marbles = TestClean()
         prueba_clean_marbles.test_islower_w_marbles()
-        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean')
+        metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles','success','clean', 'none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -678,7 +679,7 @@ class Test2ForClean(luigi.Task):
     def run(self):
         prueba_clean_marbles = TestClean()
         prueba_clean_marbles.test_correct_type()
-        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
+        metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean', 'none')
 
         with self.output().open('w') as out_file:
             metadatos.to_csv(out_file, sep='\t', encoding='utf-8', index=None, header=False)
@@ -721,7 +722,8 @@ class InsertaMetadatosPruebasUnitariasClean(CopyToTable):
              ("usuario", "VARCHAR"),
              ("test", "VARCHAR"),
              ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
 
     def rows(self):
          #Leemos el df de metadatos
