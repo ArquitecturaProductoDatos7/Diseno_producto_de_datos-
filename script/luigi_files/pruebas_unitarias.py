@@ -153,7 +153,7 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     2.- Probar que se cumpla la condición de que el número de nulos en el set de entrenamiento para todas las variables es cero
     """
     
-    data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020')
+    data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
 
     data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
 
@@ -192,9 +192,9 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
     2.- Probar que todas las variables sean numericas en el set de entrenamiento.
     """
     
-    data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020')
+    data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
     
-    data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_info_mensual_mes_4_ano_2020')
+    data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_info_mensual_mes_4_ano_2020.csv')
 
     data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
 
