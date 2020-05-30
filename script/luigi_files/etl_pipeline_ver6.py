@@ -188,7 +188,7 @@ class CreaTablaPruebasUnitariasMetadatos(PostgresQuery):
     query = """
             CREATE TABLE tests.pruebas_unitarias(fecha_ejecucion VARCHAR, ip_address VARCHAR, 
                                                  usuario VARCHAR, test VARCHAR,
-                                                 test_status VARCHAR, level VARCHAR);
+                                                 test_status VARCHAR, level VARCHAR, error VARCHAR);
             """
 
     def requires(self):
