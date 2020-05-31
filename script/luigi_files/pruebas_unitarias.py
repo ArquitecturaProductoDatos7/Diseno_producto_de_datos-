@@ -181,7 +181,7 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
     2.- Probar que todas las variables sean numericas en el set de entrenamiento.
     """
     def __init__(self, file1, file2, file3, file4):
-        #3.imputaciones/X_train
+        #3.imputaciones/X_info_mensual_mes_4_ano_2020.csv
         self.data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file1))
         #4.input_modelo/X_info_mensual_mes_4_ano_2020.csv
         self.data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file2))
