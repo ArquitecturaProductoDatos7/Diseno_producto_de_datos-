@@ -922,7 +922,9 @@ class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
 
 
     def run(self):
-        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles('3.imputaciones/X_info_mensual_mes_4_ano_2020.csv',
+                                                                           '1.preprocesamiento/base_procesada.csv',
+                                                                           ' 3.imputaciones/X_train')
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec_info_mensual','success','feature_engineering', self.test_error)
 
@@ -1272,6 +1274,92 @@ class PrediccionesInfoMensual(luigi.Task):
         return {'predict_info_mensual' : luigi.contrib.s3.S3Target(path=output_path+'predicciones_mes_'+self.month+'_ano_'+self.year+'.csv'),
                 'meta_info_mensual' : luigi.contrib.s3.S3Target(path=output_path+'metadata_predicciones_mes_'+self.month+'_ano_'+self.year+'.csv')}
 
+
+
+
+
+class CreaTablaPrediccionesInfoMensual(PostgresQuery):
+    "Crea la tabla de las predicciones dentro del esquema PREDICCION"
+    #Para conectarse a la base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+
+    table = ""
+    query = """
+            CREATE TABLE prediccion.PrediccionesInfoMensual(id SERIAL PRIMARY KEY,
+                                                            mes INT,
+                                                            hora INT,
+                                                            delegacion_inicio VARCHAR,
+                                                            dia_semana VARCHAR,
+                                                            tipo_entrada VARCHAR,
+                                                            incidente_c4_rec VARCHAR,
+                                                            ano INT,
+                                                            y_proba_0 FLOAT,
+                                                            y_proba_1 FLOAT,
+                                                            y_etiqueta INT
+                                                            );
+            """
+
+    def requires(self):
+         return CreaEsquemaPrediccion(self.db_instance_id, self.subnet_group, self.security_group,
+                                      self.host, self.database, self.user, self.password)
+
+
+
+
+
+
+class InsertaPrediccionesInfoMensual(CopyToTable):
+    "Inserta las predicciones para las predicciones del set de prueba - X_test" 
+    #Mes a extraer
+    month = luigi.IntParameter()
+    year = luigi.IntParameter()
+
+    # Parametros del RDS
+    db_instance_id = luigi.Parameter()
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
+    # Para condectarse a la Base
+    database = luigi.Parameter()
+    user = luigi.Parameter()
+    password = luigi.Parameter()
+    host = luigi.Parameter()
+    #Parametros del bucket
+    bucket = luigi.Parameter()
+    root_path = luigi.Parameter()
+
+
+    # Nombre de la tabla a insertar
+    table = 'prediccion.Predicciones'
+
+    # Estructura de las columnas que integran la tabla (ver esquema)
+    columns=[("mes", "INT"),
+             ("hora", "INT"),
+             ("delegacion_inicio", "VARCHAR"),
+             ("dia_semana", "VARCHAR"),
+             ("tipo_entrada", "VARCHAR"),
+             ("incidente_c4_rec", "VARCHAR"),
+             ("ano", "INT"),
+             ("y_proba_0", "FLOAT"),
+             ("y_proba_1", "FLOAT"),
+             ("y_etiqueta", "INT")]
+
+    def rows(self):
+        #Leemos el df de metadatos
+        with self.input()['infile1']['predict_train'].open('r') as infile:
+              for line in infile:
+                  yield line.strip("\n").split("\t")
+
+
+    def requires(self):
+        return {"infile1" : PrediccionesInfoMensual(self.month, self.year,
+                                                    self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.database, self.user, self.password, self.host,
+                                                    self.bucket, self.root_path),
+                  "infile2" : CreaTablaPrediccionesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
+                                                               self.database, self.user, self.password, self.host)}
 
 
 

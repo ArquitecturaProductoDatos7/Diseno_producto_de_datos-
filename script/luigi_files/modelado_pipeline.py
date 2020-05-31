@@ -1576,9 +1576,8 @@ class CalculaBiasFairness(luigi.Task):
 
        return {'df_bias':luigi.contrib.s3.S3Target(path=output_path+'tabla_'+self.fname+'.csv'),
                'metadata_bias':luigi.contrib.s3.S3Target(path=output_path+'metadata_'+self.fname+'.csv')}
-    
-    
-    
+
+
 class InsertaMetadatosBias(CopyToTable):
     "Esta tarea guarda los metadatos del modelo de Bias/Fairness a la RDS"
 
@@ -1608,7 +1607,7 @@ class InsertaMetadatosBias(CopyToTable):
              ("promedio_FNR","FLOAT"),
              ("delegacion_min_FOR","VARCHAR"),
              ("delegacion_min_FNR","VARCHAR")]
-    
+
     def rows(self):
         #Leemos el df de metadatos
         with self.input()['infile']['metadata_bias'].open('r') as infile:

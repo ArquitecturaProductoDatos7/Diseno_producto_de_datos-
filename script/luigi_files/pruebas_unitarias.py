@@ -147,6 +147,7 @@ class TestClean(marbles.core.TestCase):
 
 
 
+
 class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     """
     Clase con pruebas de feature engineering usando marbles:
@@ -154,11 +155,13 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     2.- Probar que se cumpla la condición de que el número de nulos en el set de entrenamiento para todas las variables es cero
     """
 
-    data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
-
-    data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
-
-    data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
+    def __init__(self, file1, file2, file3):
+        #3.imputaciones/X_info_mensual_mes_4_ano_2020.csv
+        self.data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file1)
+        #1.preprocesamiento/base_procesada.csv
+        self.data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file2)
+        #3.imputaciones/X_train
+        self.data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file3)
 
     def test_uniques_incidente_c4_rec(self):
         unicos = self.data_procesada['incidente_c4_rec'].nunique()
@@ -192,34 +195,34 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
     1.- Probar que el número de columnas en el set de entrenamiento después de hacer el one hote encoder sea igual al número de categorías de cada variable categórica, más las variables numéricas.
     2.- Probar que todas las variables sean numericas en el set de entrenamiento.
     """
+    def __init__(self, file1, file2, file3, file4):
+        #3.imputaciones/X_train
+        self.data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file1)
+        #4.input_modelo/X_info_mensual_mes_4_ano_2020.csv
+        self.data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file2)
 
-    data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
-    data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_info_mensual_mes_4_ano_2020.csv')
-
-    data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
-    data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_train_input.csv')
+        #3.imputaciones/X_train.csv
+        self.data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file3)
+        #4.input_modelo/X_train_input.csv
+        self.data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file4)
 
     def test_num_columns_x_train(self):
-        lista_variables_categoricas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include =
-                                                                                               'object').columns.values
+        lista_variables_categoricas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include = 'object').columns.values
         archivo_variables_categoricas = self.data_entrenamiento_antes_OneHoteEncoder.loc[:, lista_variables_categoricas]
         categorias_total=archivo_variables_categoricas.nunique().sum()
 
-        lista_variables_numericas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include =
-                                                                                             'number').columns.values
+        lista_variables_numericas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include = 'number').columns.values
         total_columnas=len(lista_variables_numericas)+categorias_total
         total_columnas_despues_OneHoteEncoder=len(self.data_entrenamiento_despues_OneHoteEncoder.columns.values)
 
         self.assertEqual(total_columnas, total_columnas_despues_OneHoteEncoder)
 
     def test_num_columns_x_train_info_mensual(self):
-        lista_variables_categoricas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include =
-                                                                                               'object').columns.values
+        lista_variables_categoricas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include = 'object').columns.values
         archivo_variables_categoricas = self.data_procesada_antes_OneHoteEncoder_info_mensual.loc[:, lista_variables_categoricas]
         categorias_total=archivo_variables_categoricas.nunique().sum()
 
-        lista_variables_numericas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include =
-                                                                                             'number').columns.values
+        lista_variables_numericas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include = 'number').columns.values
         total_columnas=len(lista_variables_numericas)+categorias_total
         total_columnas_despues_OneHoteEncoder=len(self.data_entrenamiento_despues_OneHoteEncoder.columns.values)
 
@@ -275,10 +278,10 @@ class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
 
     def test_check_num_cols_info_mensual(self):
         #cols en el df inicial
-        cols_ini = df_inicial.columns
+        cols_ini = self.df_inicial.columns
 
         #cols en el df inicial
-        cols_fin = df_final.columns
+        cols_fin = self.df_final.columns
 
 
         self.assertEqual(cols_ini, cols_fin, note="El numero de variables en el df de predicciones no coincide con las vars consideradas al inicio")
