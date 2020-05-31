@@ -72,35 +72,18 @@ class TestsForExtract(marbles.core.TestCase):
     def test_check_num_registros_info_mensual(self):
        cursor = self.connection.cursor()
        cursor.execute("SELECT rows FROM raw.metadatos WHERE refine_ano=\'\"2020\"\' and refine_mes=\'\"4\"\';")
-       n_rows = cursor.fetchall()
+       n_rows = cursor.fetchone()
        self.connection.commit()
 
        cursor.execute("select count(*) from raw.infomensual;")
-       n_reg = cursor.fetchall()
+       n_reg = cursor.fetchone()
        self.connection.commit()
 
-       self.assertEqual(n_rows, n_reg, note="El número de registros extraídos y el número de registros cargados no son iguales")
+       self.assertEqual(n_rows[0], n_reg[0], note="El número de registros extraídos y el número de registros cargados no son iguales")
 
 
 
 
-class TestsForLoad(marbles.core.TestCase):
-    """ 
-    Clase con pruebas de Load usando marbles:
-    1.- Probar que el número de columnas del archivo descargado sean 18
-    """
-    host = funciones_rds.db_endpoint('db-dpa20')
-    connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
-
-    def test_check_num_columnas(self):
-        #Numero de meses descargados
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT DISTINCT (SELECT count(*) FROM json_object_keys(registros)) nbr_keys FROM raw.incidentesvialesjson;")
-        n_cols = cursor.fetchall()
-        self.connection.commit()
-        print("***", n_cols)
-
-        #self.assertEqual(n_descargados[0], n_periodo, note="El número de meses del período (2014 - fecha) no coincide con el número de meses descargado")
 
 
 
@@ -112,13 +95,14 @@ class TestClean(marbles.core.TestCase):
     2.- probar que la columna *mes* de la base de datos *cleaned*
         tenga el tipo correcto, en este caso "int.64"
     """
-    #Buscamos el archivo del bucket en la S3
-    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
+    def __init__(self, fname):
+        #Buscamos el archivo del bucket en la S3
+        self.data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
 
-    host = funciones_rds.db_endpoint('db-dpa20')
-    connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
-
-    dataframe = psql.read_sql("SELECT * FROM cleaned.IncidentesVialesInfoMensual;", connection)
+        host = funciones_rds.db_endpoint('db-dpa20')
+        connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
+        #cleaned.IncidentesVialesInfoMensual
+        self.dataframe = psql.read_sql("SELECT * FROM {};".format(fname), connection)
 
     def test_islower_w_marbles(self):
         column1 = self.data['delegacion_inicio']
@@ -156,12 +140,13 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
     """
 
     def __init__(self, file1, file2, file3):
+        super(TestFeatureEngineeringMarbles, self).__init__()
         #3.imputaciones/X_info_mensual_mes_4_ano_2020.csv
-        self.data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file1)
+        self.data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file1))
         #1.preprocesamiento/base_procesada.csv
-        self.data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file2)
+        self.data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file2))
         #3.imputaciones/X_train
-        self.data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file3)
+        self.data_entrenamiento = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file3))
 
     def test_uniques_incidente_c4_rec(self):
         unicos = self.data_procesada['incidente_c4_rec'].nunique()
@@ -172,9 +157,9 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
         #self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
     def test_uniques_incidente_c4_rec_info_mensual(self):
-        unicos = self.data_procesada_info_mensual['incidente_c4_rec'].nunique()
+        unicos2 = self.data_procesada_info_mensual['incidente_c4_rec'].nunique()
 
-        self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+        self.assertEqual(unicos2, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
 
     def test_nulls_x_train(self):
@@ -197,14 +182,14 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
     """
     def __init__(self, file1, file2, file3, file4):
         #3.imputaciones/X_train
-        self.data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file1)
+        self.data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file1))
         #4.input_modelo/X_info_mensual_mes_4_ano_2020.csv
-        self.data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file2)
+        self.data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file2))
 
         #3.imputaciones/X_train.csv
-        self.data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file3)
+        self.data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file3))
         #4.input_modelo/X_train_input.csv
-        self.data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/'+file4)
+        self.data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(file4))
 
     def test_num_columns_x_train(self):
         lista_variables_categoricas=self.data_entrenamiento_antes_OneHoteEncoder.select_dtypes(include = 'object').columns.values
@@ -244,15 +229,18 @@ class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
     1.- Probar que la proporcion de etiquetas verdaderas sea "parecida" a las de los datos de entrenamiento
     2.- Probar que el numero de columnas del df final es igual al numero de cols del df inicial +3
     """
-    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/6.predicciones_prueba/predicciones_modelo.csv')
-    #Con esta FALLA la prueba
-    #data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/y_test.csv')
-
-    df_inicial= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/X_test.csv')
-    df_final = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/9.predicciones/predicciones_mes_4_ano_2020.csv')
-
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
+
+    def __init__(self, fname):
+        super(TestsForPredicciones, self).__init__()
+        self.data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/6.predicciones_prueba/predicciones_modelo.csv')
+        #Con esta FALLA la prueba
+        #self.data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/y_test.csv')
+
+        self.df_inicial= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/X_test.csv')
+        self.df_final = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/{}'.format(fname))
+
 
     def test_check_porcentaje_1s(self):
         #Porcentaje de etiquetas verdaderas en las predicciones
@@ -279,9 +267,8 @@ class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
     def test_check_num_cols_info_mensual(self):
         #cols en el df inicial
         cols_ini = self.df_inicial.columns
-
         #cols en el df inicial
         cols_fin = self.df_final.columns
 
 
-        self.assertEqual(cols_ini, cols_fin, note="El numero de variables en el df de predicciones no coincide con las vars consideradas al inicio")
+        self.assertEqual(len(cols_ini)+4, len(cols_fin), note="El numero de variables en el df de predicciones no coincide con las vars consideradas al inicio")

@@ -9,7 +9,7 @@ import funciones_rds
 import funciones_s3
 import funciones_req
 import funciones_mod
-from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW
+from etl_pipeline_ver6 import ObtieneRDSHost, InsertaMetadatosPruebasUnitariasClean, CreaEsquemaRAW, CreaEsquemaCLEANED
 from modelado_pipeline import SeparaBase, SeleccionaMejorModelo, CreaEsquemaPrediccion
 from pruebas_unitarias import TestsForExtract, TestClean, TestFeatureEngineeringMarbles
 from pruebas_unitarias import TestFeatureEngineeringMarbles, TestFeatureEngineeringPandas, TestsForPredicciones
@@ -276,7 +276,7 @@ class Test2ForExtractInfoMensual(luigi.Task):
      bucket = luigi.Parameter()
      root_path = luigi.Parameter()
 
-     folder_path = '9.predicciones'
+     folder_path = '0.pruebas_unitarias'
 
 
      def requires(self):
@@ -391,8 +391,8 @@ class CreaTablaCleanedIncidentesInfoMensual(PostgresQuery):
             """
 
     def requires(self):
-         return etl_pipeline_ver6.CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
-                                                     self.host, self.database, self.user, self.password)
+         return CreaEsquemaCLEANED(self.db_instance_id, self.subnet_group, self.security_group,
+                                   self.host, self.database, self.user, self.password)
 
 
 
@@ -543,7 +543,7 @@ class Test1ForCleanInfoMensual(luigi.Task):
                                                   self.bucket, self.root_path)
 
     def run(self):
-        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles = TestClean('cleaned.IncidentesVialesInfoMensual')
         prueba_clean_marbles.test_islower_w_marbles_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_islower_w_marbles_info_mensual','success','clean','none')
 
@@ -591,7 +591,7 @@ class Test2ForCleanInfoMensual(luigi.Task):
 
 
     def run(self):
-        prueba_clean_marbles = TestClean()
+        prueba_clean_marbles = TestClean('cleaned.IncidentesVialesInfoMensual')
         prueba_clean_marbles.test_correct_type_info_mensual()
         #metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type','success','clean')
         metadatos = funciones_req.metadata_para_pruebas_unitarias('test_correct_type_info_mensual','success','clean','none')
@@ -640,7 +640,8 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
              ("usuario", "VARCHAR"),
              ("test", "VARCHAR"),
              ("test_status", "VARCHAR"),
-             ("level", "VARCHAR")]
+             ("level", "VARCHAR"),
+             ("error", "VARCHAR")]
 
     def rows(self):
         #Leemos el df de metadatos
@@ -924,7 +925,7 @@ class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
     def run(self):
         prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles('3.imputaciones/X_info_mensual_mes_4_ano_2020.csv',
                                                                            '1.preprocesamiento/base_procesada.csv',
-                                                                           ' 3.imputaciones/X_train')
+                                                                           '3.imputaciones/X_train.csv')
         prueba_feature_engineering_marbles.test_uniques_incidente_c4_rec_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_uniques_incidente_c4_rec_info_mensual','success','feature_engineering', self.test_error)
 
@@ -969,7 +970,10 @@ class Test2ForFeatureEngineeringInfoMensual(luigi.Task):
                                                      self.bucket, self.root_path)
 
     def run(self):
-        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
+        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles('3.imputaciones/X_info_mensual_mes_4_ano_2020.csv',
+                                                                           '1.preprocesamiento/base_procesada.csv',
+                                                                           '3.imputaciones/X_train.csv')
+#        prueba_feature_engineering_marbles = TestFeatureEngineeringMarbles()
         prueba_feature_engineering_marbles.test_nulls_x_train_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_nulls_x_train_info_mensual','success','feature_engineering', self.test_error)
 
@@ -1015,7 +1019,10 @@ class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
                                                      self.bucket, self.root_path)
 
     def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_train.csv',
+                                                                         '4.input_modelo/X_info_mensual_mes_4_ano_2020.csv',
+                                                                         '3.imputaciones/X_train.csv',
+                                                                         '4.input_modelo/X_train_input.csv')
         prueba_feature_engineering_pandas.test_num_columns_x_train_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_num_columns_x_train_info_mensual','success','feature_engineering', self.test_error)
 
@@ -1061,7 +1068,11 @@ class Test4ForFeatureEngineeringInfoMensual(luigi.Task):
                                                      self.bucket, self.root_path)
 
     def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_train.csv',
+                                                                         '4.input_modelo/X_info_mensual_mes_4_ano_2020.csv',
+                                                                         '3.imputaciones/X_train.csv',
+                                                                         '4.input_modelo/X_train_input.csv')
+#        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas()
         prueba_feature_engineering_pandas.test_numerical_columns_x_train_info_mensual()
         metadatos=funciones_req.metadata_para_pruebas_unitarias('test_numerical_columns_x_train_info_mensual','success','feature_engineering', self.test_error)
 
@@ -1479,7 +1490,7 @@ class Test1ForPrediccionesInfoMensual(luigi.Task):
                                                        self.bucket, self.root_path)
 
     def run(self):
-        prueba_predicciones_marbles = TestsForPredicciones()
+        prueba_predicciones_marbles = TestsForPredicciones('9.predicciones/predicciones_mes_4_ano_2020.csv')
         try:
             prueba_predicciones_marbles.test_check_porcentaje_1s()
             metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_porcentaje_1s','success','predicciones', self.test_error)
@@ -1541,7 +1552,7 @@ class Test2ForPrediccionesInfoMensual(luigi.Task):
                                                        self.bucket, self.root_path)
 
     def run(self):
-        prueba2_predicciones = TestsForPredicciones()
+        prueba2_predicciones = TestsForPredicciones('9.predicciones/predicciones_mes_4_ano_2020.csv')
         try:
             prueba2_predicciones.test_check_num_cols_info_mensual()
             metadatos = funciones_req.metadata_para_pruebas_unitarias('test_check_num_cols_info_mensual','success','predicciones', self.test_error)
