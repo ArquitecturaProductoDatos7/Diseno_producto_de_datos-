@@ -9,8 +9,9 @@ from marbles.mixins import mixins
 import funciones_s3
 import funciones_rds
 
+
 class TestsForExtract(marbles.core.TestCase):
-    """ 
+    """
     Clase con pruebas de Extract usando marbles:
     1.- Probar que el número de meses del periodo coincida con los archivos descargados
     2.- Probar que se descargaron todos los registros del periodo
@@ -104,11 +105,11 @@ class TestsForLoad(marbles.core.TestCase):
 
 
 class TestClean(marbles.core.TestCase):
-    """ 
+    """
     Clase para ejecutar las pruebas unitarias en la etapa clean
-    1.- Probar que la columna delegacion_inicio de la base de datos *cleaned* 
+    1.- Probar que la columna delegacion_inicio de la base de datos *cleaned*
         este en minísculas
-    2.- probar que la columna *mes* de la base de datos *cleaned* 
+    2.- probar que la columna *mes* de la base de datos *cleaned*
         tenga el tipo correcto, en este caso "int.64"
     """
     #Buscamos el archivo del bucket en la S3
@@ -147,11 +148,13 @@ class TestClean(marbles.core.TestCase):
 
 
 class TestFeatureEngineeringMarbles(marbles.core.TestCase):
-    """ 
+    """
     Clase con pruebas de feature engineering usando marbles:
     1.- Probar que el número de categorías en la variable incidente_c4_rec sea 5, ya que así se reclasificó
     2.- Probar que se cumpla la condición de que el número de nulos en el set de entrenamiento para todas las variables es cero
     """
+
+    data_procesada_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
 
     data_procesada = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/1.preprocesamiento/base_procesada.csv')
 
@@ -165,22 +168,35 @@ class TestFeatureEngineeringMarbles(marbles.core.TestCase):
         #con este ejemplo no pasaría la prueba
         #self.assertEqual(unicos, 4, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
 
+    def test_uniques_incidente_c4_rec_info_mensual(self):
+        unicos = self.data_procesada_info_mensual['incidente_c4_rec'].nunique()
+
+        self.assertEqual(unicos, 5, note="El número de categorías de la columna incidente_c4_rec es diferente de 5")
+
+
     def test_nulls_x_train(self):
         condicion_nulos = self.data_entrenamiento.isnull().sum().all()
+
+        self.assertTrue(condicion_nulos==0)
+
+    def test_nulls_x_train_info_mensual(self):
+        condicion_nulos = self.data_procesada_info_mensual.isnull().sum().all()
 
         self.assertTrue(condicion_nulos==0)
 
 
 
 class TestFeatureEngineeringPandas(unittest.TestCase):
-    """ 
+    """
     Clase con pruebas de feature engineering usando marbles y pandas:
     1.- Probar que el número de columnas en el set de entrenamiento después de hacer el one hote encoder sea igual al número de categorías de cada variable categórica, más las variables numéricas.
     2.- Probar que todas las variables sean numericas en el set de entrenamiento.
     """
 
-    data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
+    data_procesada_antes_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_info_mensual_mes_4_ano_2020.csv')
+    data_procesada_despues_OneHoteEncoder_info_mensual= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_info_mensual_mes_4_ano_2020.csv')
 
+    data_entrenamiento_antes_OneHoteEncoder = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/3.imputaciones/X_train.csv')
     data_entrenamiento_despues_OneHoteEncoder= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/4.input_modelo/X_train_input.csv')
 
     def test_num_columns_x_train(self):
@@ -196,22 +212,41 @@ class TestFeatureEngineeringPandas(unittest.TestCase):
 
         self.assertEqual(total_columnas, total_columnas_despues_OneHoteEncoder)
 
+    def test_num_columns_x_train_info_mensual(self):
+        lista_variables_categoricas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include =
+                                                                                               'object').columns.values
+        archivo_variables_categoricas = self.data_procesada_antes_OneHoteEncoder_info_mensual.loc[:, lista_variables_categoricas]
+        categorias_total=archivo_variables_categoricas.nunique().sum()
+
+        lista_variables_numericas=self.data_procesada_antes_OneHoteEncoder_info_mensual.select_dtypes(include =
+                                                                                             'number').columns.values
+        total_columnas=len(lista_variables_numericas)+categorias_total
+        total_columnas_despues_OneHoteEncoder=len(self.data_entrenamiento_despues_OneHoteEncoder.columns.values)
+
+        self.assertEqual(total_columnas, total_columnas_despues_OneHoteEncoder)
+
     def test_numerical_columns_x_train(self):
         pd.api.types.is_numeric_dtype(self.data_entrenamiento_despues_OneHoteEncoder.values)
+
+    def test_numerical_columns_x_train_info_mensual(self):
+        pd.api.types.is_numeric_dtype(self.data_procesada_despues_OneHoteEncoder_info_mensual.values)
+
 
 
 
 
 class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
-    """ 
+    """
     Clase con pruebas para Predicciones usando marbles:
     1.- Probar que la proporcion de etiquetas verdaderas sea "parecida" a las de los datos de entrenamiento
     2.- Probar que el numero de columnas del df final es igual al numero de cols del df inicial +3
     """
+    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/6.predicciones_prueba/predicciones_modelo.csv')
     #Con esta FALLA la prueba
-    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/y_test.csv')
+    #data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/y_test.csv')
 
-#    data = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/6.predicciones_prueba/predicciones_modelo.csv')
+    df_inicial= funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/2.separacion_base/X_test.csv')
+    df_final = funciones_s3.abre_file_como_df('dpa20-incidentes-cdmx', 'bucket_incidentes_cdmx/9.predicciones/predicciones_mes_4_ano_2020.csv')
 
     host = funciones_rds.db_endpoint('db-dpa20')
     connection = funciones_rds.connect( 'db_incidentes_cdmx', 'postgres', 'passwordDB', host)
@@ -225,10 +260,10 @@ class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
         self.connection.commit()
 
         #Porcentaje de verdaderas en los datos
-        #porcentaje_1_historicos = self.data.iloc[:,9].mean()*100
+        porcentaje_1_historicos = self.data.iloc[:,9].mean()*100
 
         #Con esta FALLA la prueba
-        porcentaje_1_historicos = self.data['target'].mean()*100
+        #porcentaje_1_historicos = self.data['target'].mean()*100
 
         try:
             self.assertBetween(porcentaje_1_predicciones, lower=porcentaje_1_historicos*(0.8), upper=porcentaje_1_historicos*(1.2),
@@ -236,3 +271,14 @@ class TestsForPredicciones(marbles.core.TestCase, mixins.BetweenMixins):
 
         except marbles.core.marbles.ContextualAssertionError as error:
             raise ValueError(error)
+
+
+    def test_check_num_cols_info_mensual(self):
+        #cols en el df inicial
+        cols_ini = df_inicial.columns
+
+        #cols en el df inicial
+        cols_fin = df_final.columns
+
+
+        self.assertEqual(cols_ini, cols_fin, note="El numero de variables en el df de predicciones no coincide con las vars consideradas al inicio")
