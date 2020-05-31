@@ -1019,7 +1019,7 @@ class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
                                                      self.bucket, self.root_path)
 
     def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_train.csv',
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_info_mensual_mes_4_ano_2020.csv',
                                                                          '4.input_modelo/X_info_mensual_mes_4_ano_2020.csv',
                                                                          '3.imputaciones/X_train.csv',
                                                                          '4.input_modelo/X_train_input.csv')
@@ -1068,7 +1068,7 @@ class Test4ForFeatureEngineeringInfoMensual(luigi.Task):
                                                      self.bucket, self.root_path)
 
     def run(self):
-        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_train.csv',
+        prueba_feature_engineering_pandas = TestFeatureEngineeringPandas('3.imputaciones/X_info_mensual_mes_4_ano_2020.csv',
                                                                          '4.input_modelo/X_info_mensual_mes_4_ano_2020.csv',
                                                                          '3.imputaciones/X_train.csv',
                                                                          '4.input_modelo/X_train_input.csv')
