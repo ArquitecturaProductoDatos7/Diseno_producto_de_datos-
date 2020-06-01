@@ -1343,7 +1343,7 @@ class InsertaPrediccionesInfoMensual(CopyToTable):
 
 
     # Nombre de la tabla a insertar
-    table = 'prediccion.Predicciones'
+    table = 'prediccion.PrediccionesInfoMensual'
 
     # Estructura de las columnas que integran la tabla (ver esquema)
     columns=[("mes", "INT"),
