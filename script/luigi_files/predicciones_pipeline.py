@@ -1291,6 +1291,9 @@ class PrediccionesInfoMensual(luigi.Task):
 
 class CreaTablaPrediccionesInfoMensual(PostgresQuery):
     "Crea la tabla de las predicciones dentro del esquema PREDICCION"
+    db_instance_id = luigi.Parameter() 
+    subnet_group = luigi.Parameter()
+    security_group = luigi.Parameter()
     #Para conectarse a la base
     database = luigi.Parameter()
     user = luigi.Parameter()
@@ -1443,7 +1446,7 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
 
     def rows(self):
         #Leemos el df de metadatos
-        with self.input()['infile1']['meta_info_mensual'].open('r') as infile:
+        with self.input()['infile3']['meta_info_mensual'].open('r') as infile:
              for line in infile:
                   yield line.strip("\n").split("\t")
 
@@ -1454,7 +1457,11 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
                                                     self.database, self.user, self.password, self.host,
                                                     self.bucket, self.root_path),
                 "infile2" : CreaTablaMetadatosPrediccionesInfoMensual(self.db_instance_id, self.subnet_group, self.security_group,
-                                                                      self.database, self.user, self.password, self.host)}
+                                                                      self.database, self.user, self.password, self.host),
+                "infile3" : PrediccionesInfoMensual(self.month, self.year,
+                                                    self.db_instance_id, self.subnet_group, self.security_group,
+                                                    self.database, self.user, self.password, self.host,
+                                                    self.bucket, self.root_path)}
 
 
 
