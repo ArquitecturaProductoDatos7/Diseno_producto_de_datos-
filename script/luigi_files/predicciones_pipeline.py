@@ -1359,7 +1359,7 @@ class InsertaPrediccionesInfoMensual(CopyToTable):
 
     def rows(self):
         #Leemos el df de metadatos
-        with self.input()['infile1']['predict_train'].open('r') as infile:
+        with self.input()['infile1']['predict_info_mensual'].open('r') as infile:
               for line in infile:
                   yield line.strip("\n").split("\t")
 
