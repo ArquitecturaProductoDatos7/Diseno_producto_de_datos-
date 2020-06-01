@@ -1568,7 +1568,7 @@ class Test2ForPrediccionesInfoMensual(luigi.Task):
                            self.root_path,
                            self.folder_path
                            )
-        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba1_PREDICT_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
+        return luigi.contrib.s3.S3Target(path=output_path+"metadatos_prueba2_PREDICT_info_mensual_mes_"+self.month+"_ano_"+self.year+".csv")
 
 
 
