@@ -1449,7 +1449,7 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
 
 
     def requires(self):
-        return {"infile1" : PrediccionesInfoMensual(self.month, self.year,
+        return {"infile1" : InsertaPrediccionesInfoMensual(self.month, self.year,
                                                     self.db_instance_id, self.subnet_group, self.security_group,
                                                     self.database, self.user, self.password, self.host,
                                                     self.bucket, self.root_path),
