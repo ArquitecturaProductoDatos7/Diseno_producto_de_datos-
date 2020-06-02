@@ -90,6 +90,67 @@ app.layout = html.Div(children=[
     ])
 ])
 
+########### ************************************
+predicciones_modelo = pd.read_csv('predicciones_modelo.csv', sep = '\t')
+predicciones_modelo = pd.DataFrame(predicciones_modelo)
+predicciones_mensual = pd.read_csv('predicciones_mes_4_ano_2020.csv', sep="\t", header=None)
+
+predicciones_modelo.columns = ['mes', 'hora', 'delegacion', 'dia_semana', 'tipo_entrada', 'incidente', 'ano', 'y_proba_0', 'y_proba_1', 'y_etiqueta']
+predicciones_mensual.columns = ['mes', 'hora', 'delegacion', 'dia_semana', 'tipo_entrada', 'incidente', 'ano', 'y_proba_0', 'y_proba_1', 'y_etiqueta']
+
+predicciones_modelo.insert(0,'Datos', 'Historicos')
+predicciones_mensual.insert(0,'Datos', 'Live')
+
+df = pd.concat([predicciones_modelo, predicciones_mensual], axis=0)
+
+
+# Dropdown menu por delegacion para graficar % de 1s
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+#Aqui va la info
+df = pd.concat([predicciones_modelo, predicciones_mensual], axis=0)
+available_indicators = df['delegacion'].unique()
+
+app.layout = html.Div([
+    html.Div([
+        dcc.Dropdown(
+            id='xaxis-delegacion',
+            options=[{'label': i, 'value': i} for i in available_indicators],
+            value='cuauhtemoc'
+            ),
+        dcc.RadioItems(
+            id='xaxis-etiqueta',
+            options=[{'label': i, 'value': i} for i in ['y_proba_1', 'y_proba_0']],
+            value='y_proba_1',
+            labelStyle={'display': 'inline-block'}
+            )
+    ]),
+    dcc.Graph(id='histogram-graph')
+],
+style={'width': '48%', 'display': 'inline-block'}
+)
+    
+   
+
+@app.callback(
+    Output('histogram-graph', 'figure'),
+    [Input('xaxis-delegacion', 'value'),
+     Input('xaxis-etiqueta', 'value')]
+)
+def update_graph(xaxis_delegacion, xaxis_etiqueta):
+    dff = df[df['delegacion'] == xaxis_delegacion]
+    
+    fig = px.histogram(dff, x=dff[xaxis_etiqueta], color="Datos", histnorm='percent', nbins=50, barmode="overlay",
+                   title='Comparación de las distribuciones <br> (Datos históricos vs. Live)',
+                   labels={'y_proba_1': 'Probabilidad de etiqueta 1',
+                           'y_proba_0': 'Probabilidad de etiqueta 0',
+                           'percent': 'Porcentaje'}
+                  )
+    fig.update_yaxes(title_text='Porcentaje')
+    return fig
+
+
 if __name__ == '__main__':
     app.run_server(debug=True)
     
