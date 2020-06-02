@@ -159,6 +159,50 @@ def update_graph(xaxis_delegacion, xaxis_etiqueta):
 
 
     
+#GRAFICAS BIAS FAIRNESS    
+########### ************************************
+
+app = dash.Dash(__name__)
+server = app.server
+app.title = 'Incidentes Viales CDMX C5'
+
+df = pd.read_csv('df_bias.csv',sep='\t')
+
+def update_graph1(df):
+    
+    dff = df
+    
+    fig=px.bar(df,x='attribute_value',y='for',color='for',
+            title='Métrica False Omission Rate por Delegaciones',
+               labels={'attribute_value': 'Delegación','for':'Métrica FOR'})
+    
+    return fig
+
+def update_graph2(df):
+    
+    dff = df
+    
+    fig=px.bar(df,x='attribute_value',y='fnr',color='fnr',
+            title='Métrica False Negative Rate por Delegaciones',
+               labels={'attribute_value': 'Delegación','fnr':'Métrica FNR'})
+    
+    return fig
+
+
+fig1=update_graph1(df)
+fig2=update_graph2(df)
+
+#Layout de FOR
+app.layout = html.Div([
+    dcc.Graph(figure=fig1)],
+    style={'width': '48%', 'display': 'inline-block'})
+
+#Layout de FNR
+app.layout = html.Div([
+    dcc.Graph(figure=fig2)],
+    style={'width': '48%', 'display': 'inline-block'})
+
+    
     
 
     
