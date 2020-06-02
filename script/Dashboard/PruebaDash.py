@@ -9,7 +9,8 @@ import plotly.express as px
 from dash.dependencies import Input, Output
 
 
-df = pd.read_csv('predicciones_modelo.csv', sep=",")
+df = pd.read_csv('predicciones_modelo.csv', sep="\t")
+df_mensual = pd.read_csv('predicciones_mes_4_ano_2020.csv', sep="\t", header=None)
 
 app = dash.Dash(__name__)
 
@@ -64,7 +65,7 @@ app.layout = html.Div(children=[
     ], className="twelve columns"),
     
     html.Div(children=[
-    html.H1(children='Número de etiquetas positivas vs delegacion',
+    html.H1(children='Gráficas de entrenamiento vs producción',
            style={
             'textAlign': 'left',
             'color': colors['text']
@@ -75,15 +76,19 @@ app.layout = html.Div(children=[
     
     html.Div(
                 [
-                    html.H3("Graph 1"),
+                    html.H3("Proporción de etiquetas"),
                     dcc.Graph(
                         id="g1",
                         figure={
                             "data": [
-                                {'x': df['delegacion'], 'y': df['etiqueta'], 'type': 'bar', 'name':'live'},
-                                {'x': df['delegacion'], 'y': df['etiqueta'], 'type': 'bar', 'name': 'test'},
+                                {'x': [0,1], 'y': [(len(df_mensual[df_mensual['etiqueta'] == 0])/len(df_mensual.index)),(len(df_mensual[df_mensual['etiqueta'] == 1])/len(df_mensual.index))], 'type': 'bar', 'name':'live'},
+                                {'x': [0,1], 'y': [(len(df[df['etiqueta'] == 0])/len(df.index)),(len(df[df['etiqueta'] == 1])/len(df.index))], 'type': 'bar', 'name': 'train'},
             
-                            ]
+                            ],
+                            "layout": {
+                                'xaxis':{'title':'etiqueta'},
+                                'yaxis':{'title':'proporción'}
+                            }
                         }
                     )
                 ],
