@@ -614,8 +614,8 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
     "Inserta los metadatos para las pruebas unitarias en Clean"
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -668,8 +668,8 @@ class InsertaMetadatosPruebasUnitariasCleanInfoMensual(CopyToTable):
 class PreprocesoBaseInfoMensual(luigi.Task):
     """ Preprocesa la Informacion Mensual """
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -721,8 +721,8 @@ class ImputacionesBaseInfoMensual(luigi.Task):
     "Esta tarea hace la imputacion de la base en la Train & Test"
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -781,8 +781,8 @@ class DummiesBaseInfoMensual(luigi.Task):
     "Esta tarea convierte las variables categoricas a dummies (One-hot encoder) para la base Train & Test"
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -836,8 +836,8 @@ class InsertaMetadatosFeatuEnginInfoMensual(CopyToTable):
     Esta funcion inserta los metadatos de Feature Engineering
     """
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -897,8 +897,8 @@ class InsertaMetadatosFeatuEnginInfoMensual(CopyToTable):
 class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Feature Engineering"
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -945,8 +945,8 @@ class Test1ForFeatureEngineeringInfoMensual(luigi.Task):
 class Test2ForFeatureEngineeringInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Feature Engineering"
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -994,8 +994,8 @@ class Test2ForFeatureEngineeringInfoMensual(luigi.Task):
 class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Feature Engineering"
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1043,8 +1043,8 @@ class Test3ForFeatureEngineeringInfoMensual(luigi.Task):
 class Test4ForFeatureEngineeringInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Feature Engineering"
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1211,8 +1211,8 @@ class InsertaColumnasInfoMensual(luigi.Task):
 class PrediccionesInfoMensual(luigi.Task):
     """ Calcula las predicciones para la Info Mensual"""
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1328,8 +1328,8 @@ class CreaTablaPrediccionesInfoMensual(PostgresQuery):
 class InsertaPrediccionesInfoMensual(CopyToTable):
     "Inserta las predicciones para las predicciones del set de prueba - X_test" 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1417,8 +1417,8 @@ class InsertaMetadatosPrediccionesInfoMensual(CopyToTable):
     Esta funcion inserta los metadatos de Feature Engineering
     """
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1471,8 +1471,8 @@ class Test1ForPrediccionesInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Predicciones"
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1533,8 +1533,8 @@ class Test2ForPrediccionesInfoMensual(luigi.Task):
     "Corre las pruebas unitarias para la parte de Predicciones"
 
     #Mes a extraer
-    month = luigi.IntParameter()
-    year = luigi.IntParameter()
+    month = luigi.Parameter()
+    year = luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = luigi.Parameter()
@@ -1593,8 +1593,8 @@ class InsertaMetadatosPruebasUnitariasPrediccionesInfoMensual(CopyToTable):
     "Inserta los metadatos para las pruebas unitarias en Clean"
 
     #Mes a extraer
-    month = "4" #luigi.IntParameter()
-    year = "2020" #luigi.IntParameter()
+    month = "4" #luigi.Parameter()
+    year = "2020" #luigi.Parameter()
 
     # Parametros del RDS
     db_instance_id = 'db-dpa20'  #luigi.Parameter()
