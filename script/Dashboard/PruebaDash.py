@@ -1,11 +1,12 @@
-import dash_html_components as html
-import pandas as pd
 import dash
+import dash_html_components as html
+import dash_core_components as dcc
 import dash_table
 import pandas as pd
-import dash_core_components as dcc
-from flask import Flask
+#from flask import Flask
 import plotly.graph_objs as go
+import plotly.express as px
+from dash.dependencies import Input, Output
 
 
 df = pd.read_csv('predicciones_modelo.csv', sep=",")
