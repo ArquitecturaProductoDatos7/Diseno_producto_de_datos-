@@ -108,7 +108,7 @@ Se determinó que el producto de datos es tipo **assitive** porque es una interv
 
 Se acuerdo con esta primer métrica se observa que por ejemplo en las delegaciones de Tlalpan y Álvaro Obregón son en las que el modelo predice incorrectamente en mayor número de veces. En el caso de Tlalpan el 92% de la veces las llamadas que eran *verdaderas* la etiqueta con baja probabilidad o no *verdaderas*, justo por el hecho de priorizar las que tengan mayor probabilidad.
 
-* **False Omission Rate** - Para medir la proporción de falsos negativos que se rechazan incorrectamente y en este caso interesa conocer su hay un sesgo hacia alguna delegación en este sentido, debido a que se busca tener unna paridad de FNR (primera mètrica) en todas las delegaciones.
+* **False Omission Rate** - Para medir la proporción de falsos negativos que se rechazan incorrectamente y en este caso interesa conocer su hay un sesgo hacia alguna delegación, debido a que se busca tener una paridad de FNR (primera métrica) en todas las delegaciones.
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/FOR.png)
 
