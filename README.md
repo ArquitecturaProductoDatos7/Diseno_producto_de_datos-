@@ -36,7 +36,7 @@ Un **Dashboard** que presente la información de la lista priorizada en forma di
 * Con las transformaciones anteriores se pasará al esquema *cleaned* en la RDS. En esta parte, de acuerdo al EDA (Exploratory Data Analysis) las variables que se quedarón para el modelo son las siguientes: hora_creacion (únicamente la hora, sin minutos ni segundos), delegacion_inicio, dia_semana, tipo_entrada, mes, incidente_c4 y la variable target (codigo_cierre). 
 Se puede encontrar el diccionario de estas variables en la siguiente liga [EDA](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/tree/master/EDA).<br> <hr> 
 
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/finalphoto.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/EtlAjustada.png)
 
 ### 2. Orchestration
 
