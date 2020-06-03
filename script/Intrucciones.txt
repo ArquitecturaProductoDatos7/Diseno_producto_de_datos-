@@ -1,4 +1,4 @@
-1. Para hacer ejecutables los archivos .sh
+1. Para hacer ejecutables los archivos .sh (dentro de la carpeta script)
 
 chmod u+x 00_create_ec2_en_aws.sh
 chmod u+x 01_copy_key_and_files_to_ec2.sh
@@ -7,15 +7,15 @@ chmod u+x 01_copy_key_and_files_to_ec2.sh
 
  ./00_create_ec2_en_aws.sh 
 
-Si no hubo ningn problema, se presentaran en pantalla el ID de la instancia, la DNS y la IPv4 publicas de la instancia.
+Si no hubo ningun problema, se presentaran en pantalla el ID de la instancia, la DNS y la IPv4 publicas de la instancia.
 
-3. Comprobamos la conexion a la instancia ec2, usando la DNS publica que aparecio en pantalla
+3. Comprobamos la conexión a la instancia ec2, usando la DNS pública que apareció en pantalla
 
 ssh -i ~/Documents/dpa2020/Proyecto_accidentes_viales_CDMX/AWS/Priv/key-dpa2020.pem ubuntu@ec2-3-88-18-174.compute-1.amazonaws.com
 
-Tambien podemos ver que en el folder .ssh/ no esta nuestra llave privada
+También podemos ver que en el folder .ssh/ no esta nuestra llave privada
 
-4. Correr el archivo que copia las llave privada, el archivo de Requirements.txt y todos os archivos del folder luigi_files a la ec2. Para esto se requieren 2 parametros:
+4. Correr el archivo que copia las llave privada, el archivo de Requirements.txt (dentro de script/luigi_files) y todos los archivos del folder luigi_files a la ec2. Para esto se requieren 2 parametros:
 
 ./01_copy_key_and_files_to_ec2 ruta/a/la/llave/llave.pem DNS_publica_sin_ubuntu
 
@@ -24,20 +24,22 @@ En mi caso
 ./01_copy_key_and_files_to_ec2.sh /home/bj/Documents/dpa2020/Proyecto_accidentes_viales_CDMX/AWS/Priv/key-dpa2020.pem ec2-3-88-18-174.compute-1.amazonaws.com
 
 
-5. Dentro de la ec2 en AWS, 
+5. Dentro de la ec2 en AWS, (dentro de script/luigi_files)
 
-chmod u+x 00_install_requirements.sh
+chmod u+x 03_install_requirements.sh
+
+6. Para entrenamiento correr:
 
 
+PYTHONPATH="." luigi --module modelado_pipeline InsertaMetadatosBias --local-scheduler
 
+7. Para predicciones correr:
 
-PYTHONPATH="." luigi --module etl_pipeline PeticionApiInfoMensual --month 1 --year 2019 --local-scheduler
+PYTHONPATH="." luigi --module predicciones_pipeline InsertaMetadatosPruebasUnitariasPrediccionesInfoMensual --local-scheduler
 
+8. Para consultar la RDS
 
 psql -h db-dpa2020.clkxxfkka82h.us-east-1.rds.amazonaws.com -U postgres -d db_accidentes_cdmx
-
-
-PYTHONPATH="." luigi --module etl_pipeline CreaEsquemasBD --local-scheduler
 
 
 
