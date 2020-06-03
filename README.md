@@ -87,9 +87,27 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 
 ####  DAG<a name="id7"></a>
 
+* **DAG**->con tarea Final: Inserta Metadados de Clean<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DAGinsertaPUClean.png)
+
+* **DAG**->con tarea Final: Inserta Metadados de FeatureEngineering<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DagInsertaMetadatosPU.png)
+
+* **DAG**->con tarea Final: CorreModelos<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/CorreModeloDAG.png)
+
+* **DAG**->con tarea Final: Inserta Metadatos del Modelo<br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_a.png)
+
+
+* **DAG**->con tarea Final: Inserta Metadados Pruebas Extract<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/InsertaMetadosPUExtrac.png)
+
+* **DAG**->con tarea Final: Inserta Metadatos de Pruebas Unitarias de Clean<br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag2v.png)
+
+* **DAG**->con tarea Final: Inserta Metadatos de Predicciones Info Mensual<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_a.png)
 
 
 ### 3. Implicaciones éticas<a name="id8"></a>
@@ -135,7 +153,7 @@ De igual manera en la gráfica del FOR se tienen 2 delegaciones con esa métrica
 
 De igual manera, se obutuvo el **FOR disparity** y el **FNR disparity** para completar el análsis y poder realizar una comparación entre una delegación como punto de referencia para determinar la disparidad entre todas las delegaciones respecto al *benchmark* elegido. En este caso la delegación de referencia fue Iztapalapa que es la delegación que tiene mayor número de ocurrencias y justamente puede reflejar un mayor acercamiento del comportamiento de los datos para el análisis. 
 
-## 7 Referencias<a name="id14"></a>
+### 7 Referencias<a name="id14"></a>
 
 [C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4) <br>
 [Aequitas](https://dssg.github.io/aequitas/examples/compas_demo.html)
