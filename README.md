@@ -87,15 +87,14 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 
 ####  DAG<a name="id7"></a>
 
-* **Pipeline de predicciones**->con tarea Final: Inserta Metadados de Clean<br>
+* **Pipeline de predicciones**-> Hasta clean <br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag2v.png)
 
-* **Pipeline de modelado**->con tarea Final: Inserta Metadados de Clean<br>
+* **Pipeline de modelado**-> Hasta corre modelos <br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/modelado_pipeline.png)
 
-* **Pipeline de ETL**->con tarea Final: Inserta Metadados de Clean<br>
+* **Pipeline de ETL**-> Por actualizar con pruebas unitarias <br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_pipeline.png)
-* Esta imagen no incluye la actualizacion con pruebas unitarias
 
 
 ### 3. Implicaciones éticas<a name="id8"></a>
