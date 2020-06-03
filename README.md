@@ -37,9 +37,22 @@ La utilidad en este producto de datos recide en poder priorizar con antelación 
 
 ### Entregables<a name="id4"></a>
 
-Un **Dashboard** que presente la información de la lista priorizada en forma dinámica, actualizando las solicitudes que ya fueron atendidas y calculando de modo automático el tiempo de respuesta para realizar estadísticas futuras.<br>  <hr> 
+Un **Dashboard Cliente** que presente la información de la lista priorizada en forma dinámica, actualizando las solicitudes que ya fueron atendidas y calculando de modo automático el tiempo de respuesta para realizar estadísticas futuras. Este dashboard esta pensado para las personas que utilizaran el producto de datos, en este caso las personas que toman la llamada del C5 de la Cdmx.<br>  <hr> 
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/mockup.png)
+
+Un **Dashboard Monitoreo** que presente información revelante de las predicciones que se van realizando, tiene incluido lo siguiente:
+* Una tabla de predicciones que tiene las probabilidades de etiqueta 0 y 1 de cada observación.<br>  <hr> 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/tabladash1.png)
+
+* Una gráfica asociada a las predicciones que compara las proporciones de etiquetas positivas contra lo histórico, del mismo modo una gráfica o histograma que muestra como se van comportando las distribuciones de probabilidad a cada delegación.<br>  <hr> 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/gprediccionesdash.png)
+
+* Una tabla de estadíscticas descriptivas para comparar estas medidas entre lo real(histórico) y las predicciones.<br>  <hr>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/EstadisticasDescriptivas.png)
+
+* Por último una gráfica que muestra el sesgo de las métricas elegidas de Bias y Fairness para el atributo protegido (Delegación)<br>  <hr> 
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/MonitoreoBias.png)
 
 ### 1. ETL<a name="id5"></a>
 
