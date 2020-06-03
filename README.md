@@ -87,27 +87,15 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 
 ####  DAG<a name="id7"></a>
 
-* **DAG**->con tarea Final: Inserta Metadados de Clean<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DAGinsertaPUClean.png)
-
-* **DAG**->con tarea Final: Inserta Metadados de FeatureEngineering<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/DagInsertaMetadatosPU.png)
-
-* **DAG**->con tarea Final: CorreModelos<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/CorreModeloDAG.png)
-
-* **DAG**->con tarea Final: Inserta Metadatos del Modelo<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
-
-
-* **DAG**->con tarea Final: Inserta Metadados Pruebas Extract<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/InsertaMetadosPUExtrac.png)
-
-* **DAG**->con tarea Final: Inserta Metadatos de Pruebas Unitarias de Clean<br>
+* **Pipeline de predicciones**->con tarea Final: Inserta Metadados de Clean<br>
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag2v.png)
 
-* **DAG**->con tarea Final: Inserta Metadatos de Predicciones Info Mensual<br>
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_a.png)
+* **Pipeline de modelado**->con tarea Final: Inserta Metadados de Clean<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/modelado_pipeline.png)
+
+* **Pipeline de ETL**->con tarea Final: Inserta Metadados de Clean<br>
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/etl_pipeline.png)
+* Esta imagen no incluye la actualizacion con pruebas unitarias
 
 
 ### 3. Implicaciones éticas<a name="id8"></a>
