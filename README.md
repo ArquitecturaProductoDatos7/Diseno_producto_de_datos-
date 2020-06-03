@@ -13,7 +13,9 @@
 + [*Bias y Fairness*](#id11)
     + [Atributo Protegido](#id12)
     + [Métricas *Bias* y *Fairness*](#id13)
-+ [Referencias](#id14)
++ [Instalación](#id14)
++ [Referencias](#id15)
+
 
 ## Definición de proyecto a realizar<a name="id1"></a>
 
@@ -140,7 +142,48 @@ De igual manera en la gráfica del FOR se tienen 2 delegaciones con esa métrica
 
 De igual manera, se obutuvo el **FOR disparity** y el **FNR disparity** para completar el análsis y poder realizar una comparación entre una delegación como punto de referencia para determinar la disparidad entre todas las delegaciones respecto al *benchmark* elegido. En este caso la delegación de referencia fue Iztapalapa que es la delegación que tiene mayor número de ocurrencias y justamente puede reflejar un mayor acercamiento del comportamiento de los datos para el análisis. 
 
-### 7 Referencias<a name="id14"></a>
+
+### 7 Instalacion<a name="id14"></a>
+
+**Paso 0** Clonar el repositorio
+
+**Paso 1** Se debe tener la siguiente infraestructura dento de AWS para poder continuar:
+- VPC con subnets y security groups
+- 2 Subnets en diferentes Availability Zones
+
+Información paso a paso de cómo crearlas se encuentra en la carpeta de *Docs*.
+
+**Paso 2** Dentro de la carpeta de scripts hacer los siguiente:
+
+    - 2.1 Hacer ejecutables los archivos .sh (dentro de la carpeta script):
+      *chmod u+x 00_create_ec2_en_aws.sh*
+      *chmod u+x 01_copy_key_and_files_to_ec2.sh*
+      
+     - 2.2 Correr el archivo que crea la instancia ec2 en AWS
+      *./00_create_ec2_en_aws.sh *
+      Si no hubo ningun problema, se presentaran en pantalla el ID de la instancia, la DNS y la IPv4 publicas de la instancia.
+      
+      - 2.3 Comprobamos la conexión a la instancia ec2, usando la DNS pública que apareció en pantalla con la siguiente instruccion
+      *ssh -i ~/path/to/key.pem ubuntu@dns-publica-1.amazonaws.com*
+
+      - 2.4Correr el archivo que copia las llave privada, el archivo de Requirements.txt (dentro de script/luigi_files) y todos los archivos del folder luigi_files a la ec2. Para esto se requieren 2 parametros y la siguiente instruccion:
+      *./01_copy_key_and_files_to_ec2 ruta/a/la/llave/llave.pem DNS_publica_sin_ubuntu*
+      
+      - 2.5 Dentro de la ec2 en AWS, (dentro de script/luigi_files) hacemos
+      *chmod u+x 03_install_requirements.sh*
+
+      - 2.6 Para entrenamiento correr:
+       *PYTHONPATH="." luigi --module modelado_pipeline InsertaMetadatosBias --local-scheduler*
+
+      - 2.8 Para predicciones correr:
+      *PYTHONPATH="." luigi --module predicciones_pipeline InsertaMetadatosPruebasUnitariasPrediccionesInfoMensual --local-scheduler*
+      
+      - 2.9 Para consultar la RDS
+      *psql -h db-dpa2020.clkxxfkka82h.us-east-1.rds.amazonaws.com -U postgres -d db_accidentes_cdmx*
+
+
+
+### 8 Referencias<a name="id15"></a>
 
 [C5](https://datos.cdmx.gob.mx/explore/dataset/incidentes-viales-c5/table/?disjunctive.incidente_c4) <br>
 [Aequitas](https://dssg.github.io/aequitas/examples/compas_demo.html)
