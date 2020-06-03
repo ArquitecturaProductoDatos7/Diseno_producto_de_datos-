@@ -28,7 +28,7 @@ predicciones_modelo.columns = ['Mes', 'Hora', 'Delegacion', 'Dia semana', 'Tipo 
 predicciones_mensual.columns = ['Mes', 'Hora', 'Delegacion', 'Dia semana', 'Tipo de entrada', 'Tipo de Incidente', 'Año', 'Prob. etiqueta 0', 'Prob. etiqueta 1', 'Etiqueta']
 
 predicciones_modelo.insert(0,'Datos', 'Historicos')
-predicciones_mensual.insert(0,'Datos', 'Live')
+predicciones_mensual.insert(0,'Datos', 'Predicciones')
 
 #'https://www.w3schools.com/w3css/4/w3.css'
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css' ]
@@ -37,7 +37,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 #Tabla de predicciones
 def tabla_predicciones(df):
-    df_predict = df[['Mes', 'Hora', 'Dia semana', 'Delegacion', 'Tipo de entrada', 'Tipo de Incidente', 'Prob. etiqueta 0', 'Prob. etiqueta 1', 'Etiqueta']].sort_values(['Hora','Prob. etiqueta 1'], ascending=["True", "False"]).round(2)
+    df_predict = df[['Mes', 'Hora', 'Dia semana', 'Delegacion', 'Tipo de entrada', 'Tipo de Incidente', 'Prob. etiqueta 0', 'Prob. etiqueta 1', 'Etiqueta']].sort_values(['Hora','Etiqueta'], ascending=["True", "False"]).round(2)
     tabla_predict = dash_table.DataTable(id='tabla-predicciones',
                                          columns=[{"name": i, "id": i} for i in df_predict.columns],
                                          data=df_predict.to_dict('records'),
@@ -48,7 +48,9 @@ def tabla_predicciones(df):
                                          style_data_conditional=[{'if': {'row_index':'odd'},
                                                                   'backgroundColor':colors['background']}],
                                          style_cell={'fontSize':12},
-                                         style_cell_conditional=[{'if': {'column_id': 'Delegacion'},
+                                         style_cell_conditional=[{'if': {'column_id': 'Dia semana'},
+                                                                       'width': '12%'},
+                                                                 {'if': {'column_id': 'Delegacion'},
                                                                        'width': '15%'},
                                                                  {'if': {'column_id': 'Tipo de entrada'},
                                                                        'width': '15%'},
@@ -63,9 +65,64 @@ def tabla_predicciones(df):
     return tabla_predict
     
 
+def tabla_descripcion(df, flag):
+    if flag == 'num':
+        dff = df.round(2)
+        dff.reset_index(inplace=True)
+        dff = dff[['index', 'Mes', 'Hora', 'Prob. etiqueta 0', 'Prob. etiqueta 1', 'Etiqueta']]
+        tabla = dash_table.DataTable(columns=[{"name": i, "id": i} for i in dff.columns],
+                                     data=dff.to_dict('records'),
+                                     fixed_rows={'headers': True},
+                                     style_header={'backgroundColor':colors['title'],'fontWeight':'bold','align':'left',
+                                                   'color': '#ffffff', 'fontSize':14},
+                                     style_data_conditional=[{'if': {'row_index':'odd'},
+                                                                  'backgroundColor':colors['background']}],
+                                     style_cell={'fontSize':12},
+                                     style_cell_conditional=[{'if': {'column_id': 'index'},
+                                                                       'width': '6%'},
+                                                                 {'if': {'column_id': 'Hora'},
+                                                                       'width': '6%'},
+                                                                 {'if': {'column_id': 'Mes'},
+                                                                       'width': '6%'},
+                                                                 {'if':{'column_id': 'Prob. etiqueta 0'},
+                                                                       'width': '13%'},
+                                                                 {'if':{'column_id': 'Prob. etiqueta 1'},
+                                                                       'width': '13%'},
+                                                                 {'if':{'column_id': 'Etiqueta'},
+                                                                       'width': '10%'}],
+                                         #style_table={'overflowY': 'scroll', 'overflowX': 'auto'}
+                                     )
+    else:
+        dff = df
+        dff.reset_index(inplace=True)
+        tabla = dash_table.DataTable(columns=[{"name": i, "id": i} for i in dff.columns],
+                                     data=dff.to_dict('records'),
+                                     fixed_rows={'headers': True},
+                                     style_header={'backgroundColor': colors['title'], 'fontWeight': 'bold',
+                                                   'align': 'left',
+                                                   'color': '#ffffff', 'fontSize': 14},
+                                     style_data_conditional=[{'if': {'row_index': 'odd'},
+                                                              'backgroundColor': colors['background']}],
+                                     style_cell={'fontSize': 12},
+                                     )
+
+    return tabla
+
 
 #Df para grafica de Dropdown
 df = pd.concat([predicciones_modelo, predicciones_mensual], axis=0)
+# Descriptivas
+# Variables numericas
+df_hist = df[df['Datos']=='Historicos'].describe()
+df_live = df[df['Datos']=='Predicciones'].describe()
+# Variables categoricas
+for col in ['Delegacion', 'Dia semana', 'Tipo de entrada', 'Tipo de Incidente']:
+    df[col] = df[col].astype('category')
+#df.dtypes
+df_hist_cat = df[df['Datos']=='Historicos'].select_dtypes(include='category').describe()
+df_live_cat = df[df['Datos']=='Predicciones'].select_dtypes(include='category').describe()
+
+
 available_indicators = df['Delegacion'].unique()
 
 #Df para Número de etiquetas positivas vs delegacion
@@ -141,7 +198,28 @@ app.layout = html.Div(style={'backgroundColor': colors['background']},
                                       'backgroundColor': colors['background'],
                                       'padding': '6px 6px 0px 0px'}
                                ),
-                      html.Div(),
+                      html.Div([  
+                               html.Div([
+                                         html.Div([
+                                                   html.H5('Estadísticas descriptivas para los datos Históricos'),
+                                                   html.Div(tabla_descripcion(df_hist, 'num')),
+                                                   html.Div(tabla_descripcion(df_hist_cat, 'cat'))
+                                                   ],
+                                                     style={'marginLeft': 10, 'marginRight': 10,
+                                                            'marginTop': 10, 'marginBottom': 10,
+                                                            'width': '48%', 'display': 'inline-block', 'height': '400px'}
+                                                   ),
+                                         html.Div([
+                                                    html.H5('Estadísticas descriptivas para las Predicciones'),
+                                                    html.Div(tabla_descripcion(df_live, 'num')),
+                                                    html.Div(tabla_descripcion(df_live_cat, 'cat'))
+                                                   ],
+                                                     style={'marginLeft': 10, 'marginRight': 10,
+                                                            'marginTop': 10, 'marginBottom': 10,
+                                                            'width': '48%', 'display': 'inline-block', 'height': '400px'}
+                                                   )
+                                         ])
+                               ]),
                       html.Div(dcc.Markdown("#### 4. Gráficas de Bias & Fairness"),
                                style={'marginLeft': 10, 'marginRight': 10, 'marginTop': 10, 'marginBottom': 0,
                                       'backgroundColor': colors['background'],
@@ -196,9 +274,3 @@ def update_graph(xaxis_delegacion, xaxis_etiqueta):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
-
-
-
-
-
