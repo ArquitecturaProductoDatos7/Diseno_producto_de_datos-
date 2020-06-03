@@ -40,7 +40,7 @@ Se puede encontrar el diccionario de estas variables en la siguiente liga [EDA](
 
 ### 2. Orchestration
 
-Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el producto de datos, hasta el momento tenemos las siguientes tareas:<br>
+Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el producto de datos, algunas de las tareas que se tiene en el primer pipeline son las siguientes:<br>
 * 1) **EtlPipeline** - que se encarga de inicializar las tareas de *ObtieneRDSHost*, *ExtraeInfoPrimeraVez* hasta  *InsertaMetadatosCLEANED*.<br>
 * 2) **CreaInstanciaRDS** - con esta tarea se crea la base de datos en postgres cuando se obtiene un "Subnet Group".<br>
 * 3) **ObtieneRDSHost** - con la cual se obtiene el endpoint(host) de la RDS creada para poder hacer la conexión posteriormente y requiere que la base de datos en postgres ya este creada.<br>
@@ -72,6 +72,9 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 ####  DAG
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_a.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_b.png)
+
 
 ### 3. Implicaciones éticas
 
