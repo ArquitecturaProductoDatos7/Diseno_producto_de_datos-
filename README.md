@@ -143,7 +143,7 @@ De igual manera en la gráfica del FOR se tienen 2 delegaciones con esa métrica
 De igual manera, se obutuvo el **FOR disparity** y el **FNR disparity** para completar el análsis y poder realizar una comparación entre una delegación como punto de referencia para determinar la disparidad entre todas las delegaciones respecto al *benchmark* elegido. En este caso la delegación de referencia fue Iztapalapa que es la delegación que tiene mayor número de ocurrencias y justamente puede reflejar un mayor acercamiento del comportamiento de los datos para el análisis. 
 
 
-### 7 Instalacion<a name="id14"></a>
+### 7 Instalación<a name="id14"></a>
 
 **Paso 0** Clonar el repositorio
 
@@ -172,13 +172,15 @@ Información paso a paso de cómo crearlas se encuentra en la carpeta de *Docs*.
       - 2.5 Dentro de la ec2 en AWS, (dentro de script/luigi_files) hacemos
       *chmod u+x 03_install_requirements.sh*
 
-      - 2.6 Para entrenamiento correr:
+**Paso 3** Correr los pipelines
+
+      - 3.1 Para entrenamiento correr:
        *PYTHONPATH="." luigi --module modelado_pipeline InsertaMetadatosBias --local-scheduler*
 
-      - 2.8 Para predicciones correr:
+      - 3.2 Para predicciones correr:
       *PYTHONPATH="." luigi --module predicciones_pipeline InsertaMetadatosPruebasUnitariasPrediccionesInfoMensual --local-scheduler*
       
-      - 2.9 Para consultar la RDS
+      - 3.3 Para consultar la RDS
       *psql -h db-dpa2020.clkxxfkka82h.us-east-1.rds.amazonaws.com -U postgres -d db_accidentes_cdmx*
 
 
