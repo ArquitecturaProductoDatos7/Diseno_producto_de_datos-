@@ -83,16 +83,37 @@ class ExponerPredicciones(Resource):
 
 
 
-@api.route("/dashboard/<int:ano>")
-class Dashboard(Resource):
-
+@api.route("/predicciones/<int:ano>")
+@api.doc(responses={404: 'Prediccion no encontrada', 200:'Prediccion encontrada'},params={'ano':'Especifica el año'})
+class ExponerPrediccionesAnual(Resource):
+    
      #metodo get
     def get(self,ano):
         """
-        Endpoint para dashboard
+        Endpoint para mostrar las predicciones de acuerdo al año introducido
         """
-        records = TablaPredicciones.query.filter(TablaPredicciones.ano==ano).all()
-        return 'exito'
+        records = TablaPredicciones.query.filter(
+                                    and_(TablaPredicciones.ano==ano,
+                                         TablaPredicciones.mes==4)).all()
+        results = [
+            {
+                "mes": record.mes,
+                "hora": record.hora,
+                "delegacion": record.delegacion_inicio,
+                "dia_semana": record.dia_semana,
+                "tipo_entrada": record.tipo_entrada,
+                "tipo_incidente":record.incidente_c4_rec,
+                "proba_0": record.y_proba_0,
+                "proba_1": record.y_proba_1,
+                "etiqueta": record.y_etiqueta
+                
+            } for record in records]
+        
+        if not results:
+            api.abort(404, 'Prediccion no encontrada')
+        else:
+            return {"observaciones": len(results), 
+                    "resultados": results}
 
 
 if __name__ == '__main__':
