@@ -73,7 +73,7 @@ Ocuparemos Luigi como orquestador de las tareas que vamos a ir realizando en el 
 
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_1.png)
 ![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_a.png)
-![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag_b.png)
+![alt text](https://github.com/ArquitecturaProductoDatos7/Diseno_producto_de_datos-/blob/master/imagenes/dag2v.png)
 
 
 ### 3. Implicaciones éticas
