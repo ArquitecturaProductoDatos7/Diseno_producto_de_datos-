@@ -74,7 +74,7 @@ olefile==0.45.1
 PAM==0.4.2
 pandas==1.0.3
 paramiko==2.7.1
-Pillow==7.1.2
+Pillow==9.0.0
 plotly==4.8.1
 prettytable==0.7.2
 psycopg2-binary==2.8.4
