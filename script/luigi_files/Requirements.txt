@@ -67,7 +67,7 @@ markdown2==2.3.5
 MarkupSafe==1.1.1
 matplotlib==3.2.1
 netifaces==0.10.4
-numpy==1.18.4
+numpy==1.22.0
 oauthlib==2.0.6
 ohio==0.5.0
 olefile==0.45.1
