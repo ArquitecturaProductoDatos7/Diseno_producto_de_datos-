@@ -49,7 +49,7 @@ invoke==1.4.1
 itsdangerous==1.1.0
 Jinja2==2.11.2
 jmespath==0.9.5
-joblib==0.14.1
+joblib==1.2.0
 jsonpatch==1.16
 jsonpointer==1.10
 jsonschema==3.2.0
